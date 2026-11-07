@@ -1,5 +1,5 @@
 """
-Unit test coverage for mutation functionality. 
+Unit test coverage for mutation operators. 
 """
 
 import pytest

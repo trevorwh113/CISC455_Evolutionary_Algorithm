@@ -12,10 +12,24 @@ population = [individial, individial, [[2,3],[5,3]]]
 # -----------------------------------------------------
 # Mutation
 # -----------------------------------------------------
-def mutate(individual):
-    pass
-    # Perform one of the operations at random
+# TODO: Implement an adaptive or self-adaptive selection method
+# TODO: Implement a self-adaptive parameter for creep mutation ?
 
+def random_mutate(individual, board, max_trashcans):
+    """
+    Performs one type of mutation on the individual at random
+    from the following operators: add, remove, modify.
+    """
+    operator = random.randint(0,2)
+    if operator == 0:
+        add_trashcan(individual, board, max_trashcans)
+    elif operator == 1:
+        remove_trashcan(individual)
+    else:
+        modify_trashcan(individual, board)
+
+def informed_mutate(individual, board, max_trashcans):
+    pass
 
 def add_trashcan(individual, board, max_trashcans):
     """
@@ -105,10 +119,6 @@ def modify_trashcan(individual, board):
     new_trashcan = [new_x, new_y]
     if new_trashcan not in individual and isFreeSpace(new_trashcan, board):
         individual[pos] = new_trashcan
-
-# TODO: Implement a random mutation selection method
-# TODO: Implement an adaptive or self-adaptive selection method
-# TODO: Implement a self-adaptive parameter for creep mutation ?
 
 # -----------------------------------------------------
 # Helper functions
