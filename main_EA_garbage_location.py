@@ -71,7 +71,7 @@ def modify_trashcan(individual, board):
     """ 
     Modifies a single coordinate from the candidate solution using
     arithmetic creep, in place. Limits perturbations to the board 
-    size. 
+    size.
 
     Leaves the individual unchanged if one of the following is true: 
     all perturbations are 0, the new trashcan is a duplicate, or the 
