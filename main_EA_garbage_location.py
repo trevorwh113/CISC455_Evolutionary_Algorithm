@@ -4,10 +4,6 @@ CISC 455 - Main code for trash can placement evolutionary algorithm
 
 import random
 
-# Input problem parameters
-N = 10
-M = 20
-
 #   list of coordinates
 individial = [[1,2],[4,4],[7,5]]
 
@@ -21,13 +17,27 @@ def mutate(individual):
     # Perform one of the operations at random
 
 
-def add_trashcan(individual, board):
+def add_trashcan(individual, board, max_trashcans):
     """
     Adds a new random pair of coordinates at a random position in the 
     candidate solution, in place. 
+    
+    Leaves the individual unchanged if one of the following is true: 
+    it already has the max number of trashcans, the new trashcan is a 
+    duplicate, or the new trashcan is on a road or wall.
+
+    Throws an IllegalBoard exception if the problem board has no rows
+    or no columns.
+
+    Properties:
     - Global exploitation (keep good trashcans, but need another) 
-    - Allows solutions to grow.
+    - Allows solutions to grow
+    - Preserves candidate validity
     """
+    # Do not add anything if the candidate is already the max size
+    if (len(individual) >= max_trashcans):
+        return
+
     rows, cols = getBoardDimensions(board)
     pos = random.randint(0,len(individual))
     new_trashcan = [random.randint(0,rows-1), random.randint(0,cols-1)]
@@ -38,9 +48,16 @@ def add_trashcan(individual, board):
 
 def remove_trashcan(individual):
     """ 
-    Removes a random pair of coordinates from the candidate solution,
-    in place. 
-    - Allows solutions to shrink.
+    Removes a random pair of coordinates from the candidate, in place.
+
+    Leaves the individual unchanged if it has just one trashcan, to 
+    ensure no empty individuals are created.
+
+    Throws an IllegalSolution exception if the input genome is empty.
+
+    Properties:
+    - Allows solutions to shrink
+    - Preserves candidate validity
     """
     if (len(individual) == 0):
         raise IllegalSolution("remove_trashcan: individual to mutate is empty!")
@@ -53,8 +70,20 @@ def remove_trashcan(individual):
 def modify_trashcan(individual, board):
     """ 
     Modifies a single coordinate from the candidate solution using
-    arithmetic creep, in place. 
+    arithmetic creep, in place. Limits perturbations to the board 
+    size. 
+
+    Leaves the individual unchanged if one of the following is true: 
+    all perturbations are 0, the new trashcan is a duplicate, or the 
+    new trashcan is on a road or wall.
+
+    Throws an IllegalSolution exception if the input genome is empty.
+    Throws an IllegalBoard exception if the problem board has no rows 
+    or no columns.
+
+    Properties:
     - Local exploitation (try to improve 'ok' trashcans)
+    - Preserves candidate validity
     """
     if (len(individual) == 0):
         raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
@@ -72,12 +101,11 @@ def modify_trashcan(individual, board):
     new_y = 0 if new_y < 0 else new_y
     new_y = cols-1 if new_y >= cols else new_y
 
-    # Do not add if it is a duplicate or on a road or wall
+    # Do not modify if it is a duplicate or on a road or wall
     new_trashcan = [new_x, new_y]
     if new_trashcan not in individual and isFreeSpace(new_trashcan, board):
         individual[pos] = new_trashcan
 
-# TODO: Make sure insert cannot exceed the allowed number of trash cans
 # TODO: Implement a random mutation selection method
 # TODO: Implement an adaptive or self-adaptive selection method
 # TODO: Implement a self-adaptive parameter for creep mutation ?
@@ -88,12 +116,16 @@ def modify_trashcan(individual, board):
 def isFreeSpace(position, board):
     """
     Returns true if it is not a road (-1) or wall (-2).
-    Simply, if the value is not negative.
+    Simply, if the board value is not negative.
     """
     value = board[position[0]][position[1]]
     return value >= 0
 
 def getBoardDimensions(board):
+    """
+    Returns the dimensions of the board as a tuple (rows, columns).
+    Throws IllegalBoard exceptions if there are no rows or columns.
+    """
     if len(board) == 0:
         raise IllegalBoard("getBoardDimensions: there are no rows!")
     if len(board[0]) == 0:
@@ -104,7 +136,9 @@ def getBoardDimensions(board):
 # Exceptions
 # -----------------------------------------------------
 class IllegalSolution(Exception):
+    """ Indicates an illegal candidate solution. """
     pass
 
 class IllegalBoard(Exception):
+    """ Indicates an illegal input problem. """
     pass

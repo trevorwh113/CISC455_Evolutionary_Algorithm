@@ -15,11 +15,12 @@ board = [[0, 0, 0,-2,-2,-2,-2],
          [0, 0, 0,-2,-2, 0, 0]]
 rows = len(board)
 columns = len(board[0])
+max_trashcans = 4
 
 @pytest.mark.parametrize('times', range(25))
 def test_add_trashcan_to_none(times):
     candidate = []
-    add_trashcan(candidate, board)
+    add_trashcan(candidate, board, max_trashcans)
 
     # Should always add exactly 1 or 0 trashcans (if on wall or road)
     size = len(candidate)
@@ -39,7 +40,7 @@ def test_add_trashcan_to_none(times):
 def test_add_trashcan_to_some(times):
     candidate = [[0,0], [0,2]]
     prev_candidate = copy.deepcopy(candidate)
-    add_trashcan(candidate, board)
+    add_trashcan(candidate, board, max_trashcans)
 
     # Should always add exactly 1 or 0 trashcans
     size = len(candidate)
@@ -62,3 +63,10 @@ def test_add_trashcan_to_some(times):
         # Existing trashcans should not be changed
         for trashcan in prev_candidate:
             assert trashcan in candidate
+
+def test_add_trashcan_maxed_out():
+    candidate = [[0,0], [0,2], [2,3], [1,1]]
+    prev_candidate = copy.deepcopy(candidate)
+    add_trashcan(candidate, board, max_trashcans)
+    # There should be no changes to the solution
+    assert candidate == prev_candidate
