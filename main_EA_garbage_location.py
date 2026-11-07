@@ -38,6 +38,7 @@ def remove_trashcan(individual):
     in place. 
     - Allows solutions to shrink.
     """
+    # TODO: Throws an error if there isn't at least 1 individual 
     pos = random.randint(0,len(individual)-1)
     individual.pop(pos)
 
@@ -47,15 +48,26 @@ def modify_trashcan(individual, rows, cols):
     arithmetic creep, in place. 
     - Local exploitation (try to improve 'ok' trashcans)
     """
+    # TODO: Throws an error if there isn't at least 1 individual 
     pos = random.randint(0,len(individual)-1)
-    coord = random.randint(0,1)
 
-    # Modify one of coordinates of the trashcan at the position
-    pass
+    # Creep x direction by a small integer, stopping at bounds
+    new_x = individual[pos][0] + (int) (2 * random.gauss(0,1))
+    new_x = 0 if new_x < 0 else new_x
+    new_x = rows-1 if new_x >= rows else new_x
+
+    # Creep y direction by a small integer, stopping at bounds
+    new_y = individual[pos][1] + (int) (2 * random.gauss(0,1))
+    new_y = 0 if new_y < 0 else new_y
+    new_y = cols-1 if new_y >= cols else new_y
+
+    individual[pos] = [new_x, new_y]
 
 # TODO: Make sure insert and modify cannot add duplicates
 # TODO: Make sure insert and modify cannot add place on roads or walls
-# TODO: Implement a random selection method
+# TODO: Make sure insert, modify cannot exceed the allowed number of trash cans
+# TODO: Make sure delete cannot create an empty solution
+# TODO: Implement a random mutation selection method
 # TODO: Implement an adaptive or self-adaptive selection method
-# TODO: Implement a self-adaptive method for creep mutation ?
+# TODO: Implement a self-adaptive parameter for creep mutation ?
 
