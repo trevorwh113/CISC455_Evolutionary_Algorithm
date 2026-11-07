@@ -16,47 +16,49 @@ board = [[0, 0, 0,-2,-2,-2,-2],
 rows = len(board)
 columns = len(board[0])
 
-@pytest.mark.parametrize('times', range(10))
+@pytest.mark.parametrize('times', range(25))
 def test_add_trashcan_to_none(times):
     candidate = []
-    add_trashcan(candidate, rows, columns)
+    add_trashcan(candidate, board)
 
-    # One trash can should have been added
-    assert len(candidate) == 1
+    # Should always add exactly 1 or 0 trashcans (if on wall or road)
+    size = len(candidate)
+    assert size == 0 or size == 1
 
-    # The trashcan should be within bounds
-    new_trashcan = candidate[0]
-    assert new_trashcan[0] >= 0 and new_trashcan[0] < rows
-    assert new_trashcan[1] >= 0 and new_trashcan[1] < columns
+    if size == 1:
+        # The trashcan should be within bounds
+        new_trashcan = candidate[0]
+        assert new_trashcan[0] >= 0 and new_trashcan[0] < rows
+        assert new_trashcan[1] >= 0 and new_trashcan[1] < columns
 
-    # The trashcan should not be on a road or wall
-    tile = board[new_trashcan[0]][new_trashcan[1]]
-    assert tile >= 0
+        # The trashcan should not be on a road or wall
+        tile = board[new_trashcan[0]][new_trashcan[1]]
+        assert tile >= 0
 
 @pytest.mark.parametrize('times', range(45))
 def test_add_trashcan_to_some(times):
     candidate = [[0,0], [0,2]]
     prev_candidate = copy.deepcopy(candidate)
-    add_trashcan(candidate, rows, columns)
+    add_trashcan(candidate, board)
 
     # Should always add exactly 1 or 0 trashcans
     size = len(candidate)
     prev_size = len(prev_candidate)
     assert size == prev_size or size == prev_size + 1
 
-    # If no trashcan was added
-    if (size == prev_size):
-        # The list should remain the exact same
+    # If nothing was added
+    if size == prev_size:
+        # Existing trashcans should not be changed
         assert candidate == prev_candidate
 
-    # If one trashcan was added
+    # If one was added
     else:
-        # It should not be a duplicate
+        # The new trash can should not be a duplicate
         already_seen = []
         for trashcan in candidate:
             assert trashcan not in already_seen
             already_seen.append(trashcan)
 
-        # No other elements should be changed
+        # Existing trashcans should not be changed
         for trashcan in prev_candidate:
             assert trashcan in candidate
