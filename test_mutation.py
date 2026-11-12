@@ -5,7 +5,10 @@ Unit test coverage for mutation operators.
 import pytest
 import copy
 
-from mutation import add_trashcan, remove_trashcan, modify_trashcan
+from mutation import (add_trashcan, remove_trashcan, modify_trashcan,
+                      is_free_space, get_board_dimensions, 
+                      update_sigma_x, update_sigma_y, creep_x_dimension, creep_y_dimension,
+                      IllegalBoard)
 
 # Problem information
 board = [[0, 0, 0,-2,-2,-2,-2],
@@ -16,6 +19,7 @@ board = [[0, 0, 0,-2,-2,-2,-2],
 rows = len(board)
 columns = len(board[0])
 max_trashcans = 4
+sigma_bound = 1
 
 @pytest.mark.parametrize('times', range(25))
 def test_add_trashcan_to_none(times):
@@ -137,3 +141,74 @@ def test_modify_trashcan_from_many(times):
         if trashcan not in prev_candidate:
             numDifferentGenes += 1
     assert numDifferentGenes == 0 or numDifferentGenes == 1
+
+def test_is_free_space():
+    """ Tests all possible tile values """
+    assert is_free_space([0,0], board)      #  0 = free
+    assert not is_free_space([0,4], board)  # -2 = building
+    assert not is_free_space([3,4], board)  # -1 = road
+
+def test_get_board_dimensions():
+    """ Tests that dimensions are correct and exceptions are thrown """
+    dimensions = get_board_dimensions(board)
+    assert dimensions == (5,7)
+    with pytest.raises(IllegalBoard):
+        get_board_dimensions([])
+    with pytest.raises(IllegalBoard):
+        get_board_dimensions([[]])
+
+@pytest.mark.parametrize('times', range(10))
+def test_update_sigma_x(times):
+    """ Sigma x should never be less than bound, and sigma y is unchanged """
+    sigma = [1,1]
+    prev_sigma = copy.deepcopy(sigma)
+    learning_rate = 2
+    update_sigma_x(sigma, learning_rate, sigma_bound)
+
+    # Sigma x may change but never dip below the bound
+    assert sigma[0] >= sigma_bound
+    # Sigma y should never change
+    assert sigma[1] == prev_sigma[1]
+
+@pytest.mark.parametrize('times', range(10))
+def test_update_sigma_y(times):
+    """ Sigma y should never be less than bound, and sigma y is unchanged """
+    sigma = [1,1]
+    prev_sigma = copy.deepcopy(sigma)
+    learning_rate = 2
+    update_sigma_y(sigma, learning_rate, sigma_bound)
+
+    # Sigma x may change but never dip below the bound
+    assert sigma[0] == prev_sigma[0]
+    # Sigma y should never change
+    assert sigma[1] >= sigma_bound
+
+@pytest.mark.parametrize('times', range(10))
+def test_creep_x_dimension(times):
+    """ Ensure the new x value is within the bounds """
+    trashcan = [1,1]
+    prev_trashcan = copy.deepcopy(trashcan)
+
+    # Trashcan itself is unchaged for now, and new x is within bounds
+    new_x = creep_x_dimension(trashcan, rows, sigma=[10,0])
+    assert trashcan == prev_trashcan
+    assert new_x >= 0 and new_x < rows
+
+    # If step size is 0, it should be unchanged
+    new_x = creep_x_dimension(trashcan, rows, sigma=[0,0])
+    assert new_x == trashcan[0]
+
+@pytest.mark.parametrize('times', range(10))
+def test_creep_y_dimension(times):
+    """ Ensure the new y value is within the bounds """
+    trashcan = [1,1]
+    prev_trashcan = copy.deepcopy(trashcan)
+    new_y = creep_x_dimension(trashcan, columns, sigma=[0,10])
+
+    # Trashcan itself is unchaged for now, and new y is within bounds
+    assert trashcan == prev_trashcan
+    assert new_y >= 0 and new_y < columns
+
+    # If step size is 0, it should be unchanged
+    new_y = creep_x_dimension(trashcan, columns, sigma=[0,0])
+    assert new_y == trashcan[0]
