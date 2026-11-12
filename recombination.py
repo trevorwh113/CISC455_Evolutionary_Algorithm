@@ -1,4 +1,3 @@
-
 import random
 
 """
@@ -75,11 +74,11 @@ def arithmetic_crossover(parent1, parent2, n):
         # Find a random point between the two coordinates
         alpha = random.random()
 
-        new_x1 = alpha * x1 + (1 - alpha) * x2
-        new_y1 = alpha * y1 + (1 - alpha) * y2
+        new_x1 = int(alpha * x1 + (1 - alpha) * x2)
+        new_y1 = int(alpha * y1 + (1 - alpha) * y2)
 
-        new_x2 = (1 - alpha) * x1 + alpha * x2
-        new_y2 = (1 - alpha) * y1 + alpha * y2
+        new_x2 = int((1 - alpha) * x1 + alpha * x2)
+        new_y2 = int((1 - alpha) * y1 + alpha * y2)
 
         child1.append([new_x1, new_y1])
         child2.append([new_x2, new_y2])
@@ -135,6 +134,5 @@ def uniform_crossover(parent1, parent2):
 
     #keep the remaining coordinates
     child1.extend(parent1[min_length:])
-    child2.extend(parent2[min_length:])
-
+    child2.extend(parent2[min_length:]) 
     return child1, child2
