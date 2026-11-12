@@ -107,7 +107,7 @@ def modify_trashcan(individual, board, sigma=[1,1]):
     pos = random.randint(0,len(individual)-1)
 
     # Creep both directions by a small integer, stopping at bounds
-    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
+    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigma)
 
     # Do not modify if it is a duplicate or on a road or wall
     new_trashcan = [new_x, new_y]
