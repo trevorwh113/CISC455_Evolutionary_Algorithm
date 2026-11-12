@@ -5,7 +5,7 @@ Unit test coverage for mutation operators.
 import pytest
 import copy
 
-from main_EA_garbage_location import add_trashcan, remove_trashcan, modify_trashcan
+from mutation import add_trashcan, remove_trashcan, modify_trashcan
 
 # Problem information
 board = [[0, 0, 0,-2,-2,-2,-2],
