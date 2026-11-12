@@ -2,7 +2,6 @@
 Implementation of mutation operators
 """
 import random
-import numpy as np
 import math
 
 # -----------------------------------------------------
@@ -104,12 +103,11 @@ def modify_trashcan(individual, board, sigma=[1,1]):
         raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
 
     # Pick a random trashcan to mutate
-    rows, cols = get_board_dimensions(board)
+    dimensions = get_board_dimensions(board)
     pos = random.randint(0,len(individual)-1)
 
     # Creep both directions by a small integer, stopping at bounds
-    new_x = creep_x_dimension(individual[pos], rows, sigma)
-    new_y = creep_y_dimension(individual[pos], cols, sigma)
+    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
 
     # Do not modify if it is a duplicate or on a road or wall
     new_trashcan = [new_x, new_y]
@@ -148,24 +146,18 @@ def self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, boun
     - Local exploitation (try to improve 'ok' trashcans)
     - Preserves candidate validity
     """
-
-    ## indvidual [[1,1], [1,2], ...] - the traschans in the individual
-    ## sigmas - [[1,1], [3,0], ... ] the step sizes for each direction for each individual
-
     if (len(individual) == 0):
         raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
 
     # Pick a random trashcan to mutate
-    rows, cols = get_board_dimensions(board)
+    dimensions = get_board_dimensions(board)
     pos = random.randint(0,len(individual)-1)
 
     # Mutate the step size
-    update_sigma_x(sigmas[pos], learning_rate, bound)
-    update_sigma_y(sigmas[pos], learning_rate, bound)
+    update_sigma(sigmas[pos], learning_rate, bound)
 
     # Creep both directions by a small integer, stopping at bounds
-    new_x = creep_x_dimension(individual[pos], rows, sigmas[pos])
-    new_y = creep_y_dimension(individual[pos], cols, sigmas[pos])
+    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
 
     # Do not modify if it is a duplicate or on a road or wall
     new_trashcan = [new_x, new_y]
@@ -195,47 +187,35 @@ def get_board_dimensions(board):
         raise IllegalBoard("get_board_dimensions: rows or columns are empty!")
     return dimensions
 
-def update_sigma_x(sigma, learning_rate, bound):
+def update_sigma(sigma, learning_rate, bound):
     """
-    Given a pair of step sizes (sigma), updates the sigma in 
-    the x direction in place by sampling using the learning rate.
+    Given a pair of step sizes (sigma), updates the sigma in both 
+    directions in place by sampling using the learning rate.
     The sigma cannot drop below bound.
     """
     new_sigma_x = sigma[0] * math.exp(learning_rate * random.gauss(0,1))
     new_sigma_x = bound if new_sigma_x < bound else new_sigma_x
     sigma[0] = new_sigma_x
 
-def update_sigma_y(sigma, learning_rate, bound):
-    """
-    Given a pair of step sizes (sigma), updates the sigma in 
-    the y direction in place by sampling using the learning rate.
-    The sigma cannot drop below bound.
-    """
     new_sigma_y = sigma[1] * math.exp(learning_rate * random.gauss(0,1))
     new_sigma_y = bound if new_sigma_y < bound else new_sigma_y
     sigma[1] = new_sigma_y
 
-def creep_x_dimension(trashcan, rows, sigma):
+def creep_trashcan(trashcan, dimensions, sigma):
     """
-    Given a trashcan, returns the x coordinate after applying
-    an integer creep mutation with the x value of the given
-    step size sigma. Keeps x within bounds.
+    Given a trashcan, returns the both coordinates after applying
+    an integer creep mutation with the the given step size sigma. 
+    Keeps x and y within bounds.
     """
     new_x = trashcan[0] + (int) (sigma[0] * random.gauss(0,1))
     new_x = 0 if new_x < 0 else new_x
-    new_x = rows-1 if new_x >= rows else new_x
-    return new_x
+    new_x = dimensions[0]-1 if new_x >= dimensions[0] else new_x
 
-def creep_y_dimension(trashcan, cols, sigma):
-    """
-    Given a trashcan, returns the y coordinate after applying
-    an integer creep mutation with the y value of the given
-    step size sigma. Keeps y within bounds.
-    """
     new_y = trashcan[1] + (int) (sigma[1] * random.gauss(0,1))
     new_y = 0 if new_y < 0 else new_y
-    new_y = cols-1 if new_y >= cols else new_y
-    return new_y
+    new_y = dimensions[0]-1 if new_y >= dimensions[0] else new_y
+
+    return new_x, new_y
 
 # -----------------------------------------------------
 # Exceptions
@@ -247,3 +227,35 @@ class IllegalSolution(Exception):
 class IllegalBoard(Exception):
     """ Indicates an illegal input problem. """
     pass
+
+
+# -----------
+# Test
+# -----------
+# Problem information
+import numpy as np
+board = np.array([[0, 0, 0,-2,-2,-2,-2],
+                  [0, 0, 0,-2, 0, 0,-2],
+                  [0, 0, 0, 0, 0, 0,-2],
+                  [0,-2,-2,-2,-1,-1,-1],
+                  [0, 0, 0,-2,-2, 0, 0]], dtype=object)
+rows, columns = board.shape
+max_trashcans = 4
+sigma_bound = 0.7
+individual = [[0,0], [2,4], [2,5], [0,2]]
+sigmas = [[1,1], [1,1], [1,1], [1,1]]
+
+learning_rate = 1 / math.sqrt(2 * math.sqrt(len(individual * 2)))
+bound = 1
+
+def test_self_adaptive():
+    print("Learning rate: ", learning_rate)
+    print("Sigma bound: ", bound)
+    print("--------------------")
+    for i in range(50):
+        print("Iteration ", i, "\n")
+        print("Individual: ", individual)
+        print("Sigmas: ", sigmas)
+        self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, bound)
+
+test_self_adaptive()
