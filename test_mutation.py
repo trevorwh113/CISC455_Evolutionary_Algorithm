@@ -4,6 +4,7 @@ Unit test coverage for mutation operators.
 
 import pytest
 import copy
+import numpy as np
 
 from mutation import (add_trashcan, remove_trashcan, modify_trashcan,
                       is_free_space, get_board_dimensions, 
@@ -11,13 +12,12 @@ from mutation import (add_trashcan, remove_trashcan, modify_trashcan,
                       IllegalBoard)
 
 # Problem information
-board = [[0, 0, 0,-2,-2,-2,-2],
-         [0, 0, 0,-2, 0, 0,-2],
-         [0, 0, 0, 0, 0, 0,-2],
-         [0,-2,-2,-2,-1,-1,-1],
-         [0, 0, 0,-2,-2, 0, 0]]
-rows = len(board)
-columns = len(board[0])
+board = np.array([[0, 0, 0,-2,-2,-2,-2],
+                  [0, 0, 0,-2, 0, 0,-2],
+                  [0, 0, 0, 0, 0, 0,-2],
+                  [0,-2,-2,-2,-1,-1,-1],
+                  [0, 0, 0,-2,-2, 0, 0]], dtype=object)
+rows, columns = board.shape
 max_trashcans = 4
 sigma_bound = 1
 
@@ -153,9 +153,14 @@ def test_get_board_dimensions():
     dimensions = get_board_dimensions(board)
     assert dimensions == (5,7)
     with pytest.raises(IllegalBoard):
-        get_board_dimensions([])
+        # 1 dimensional
+        get_board_dimensions(np.array([]))
     with pytest.raises(IllegalBoard):
-        get_board_dimensions([[]])
+        # 2 dimensional but no elements
+        get_board_dimensions(np.array([[]]))
+    with pytest.raises(IllegalBoard):
+        # 3 dimensional
+        get_board_dimensions(np.array([[[0,0], [0,0]], [[0,0], [0,0]]]))
 
 @pytest.mark.parametrize('times', range(10))
 def test_update_sigma_x(times):

@@ -120,6 +120,7 @@ def modify_trashcan(individual, board, sigma=[1,1]):
 # Self-Adaptive Mutation Operators
 # -----------------------------------------------------
 # TODO: Should this operate on all the existing ones or just pick one to change
+# TODO: This should use both a local and global learning rate
 def self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, bound):
     """ 
     Modifies a single coordinate from the candidate solution using
@@ -187,11 +188,12 @@ def get_board_dimensions(board):
     Returns the dimensions of the board as a tuple (rows, columns).
     Throws IllegalBoard exceptions if there are no rows or columns.
     """
-    if len(board) == 0:
-        raise IllegalBoard("get_board_dimensions: there are no rows!")
-    if len(board[0]) == 0:
-        raise IllegalBoard("get_board_dimensions: there are no columns!")
-    return len(board), len(board[0])
+    dimensions = board.shape
+    if len(dimensions) != 2:
+        raise IllegalBoard("get_board_dimensions: there are fewer or more than 2 dimensions!")
+    if 0 in dimensions:
+        raise IllegalBoard("get_board_dimensions: rows or columns are empty!")
+    return dimensions
 
 def update_sigma_x(sigma, learning_rate, bound):
     """
