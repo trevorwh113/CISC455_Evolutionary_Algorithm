@@ -180,13 +180,13 @@ def test_creep_trashcan(times):
     prev_trashcan = copy.deepcopy(trashcan)
 
     # Trashcan itself is unchaged for now, and new x is within bounds
-    new_x, new_y = creep_trashcan(trashcan, rows, sigma=[10,0])
+    new_x, new_y = creep_trashcan(trashcan, (rows, columns), sigma=[10,0])
     assert trashcan == prev_trashcan
     assert new_x >= 0 and new_x < rows
     assert new_y == trashcan[1]
 
     # If step size is 0, it should be unchanged
-    new_x, new_y = creep_trashcan(trashcan, rows, sigma=[0,10])
+    new_x, new_y = creep_trashcan(trashcan, (rows, columns), sigma=[0,10])
     assert trashcan == prev_trashcan
     assert new_x == trashcan[0]
     assert new_y >= 0 and new_y < columns
