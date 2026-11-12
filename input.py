@@ -17,7 +17,8 @@ def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
     
     # start by generating matrix of all 0s
     matrix = np.full((n,m),0,dtype=object)
-    print(matrix, type(matrix), n, m)
+    less_pretty_print(matrix)
+    print(type(matrix), n, m)
 
     # have some number of roads? generate horizontal then vertical 
     # roads cant be in adjacent rows/cols, 
@@ -32,8 +33,6 @@ def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
         valid_rows = [i for i in range(n) if i not in invalid_rows]
         loc_i = random.choice(valid_rows)
         matrix[loc_i] = np.array([-1] * m)
-
-        print(loc_i, invalid_rows)
 
         # ensure this & neighbouring rows will not be selected on next loop
         invalid_rows.add(loc_i)
@@ -70,14 +69,17 @@ def building_generation_1(n, m, matrix, invalid_rows, invalid_cols, buildings_pe
     # adds buildings to given matrix in random spots not containing roads 
 
     valid_rows = [i for i in range(n) if i not in invalid_rows]
-    invalid_rows = [i for i in range(m) if i not in invalid_cols]
+    valid_cols = [i for i in range(m) if i not in invalid_cols]
+    valid_coords = []
+    for i in valid_rows:
+        for j in valid_cols:
+            valid_coords.append([i,j])
 
-    num_buildings = math.floor(len(valid_rows)*len(invalid_rows)*buildings_perc)
-    print(num_buildings)
+    num_buildings = math.floor(len(valid_rows)*len(valid_cols)*buildings_perc)
     for i in range(num_buildings+1):
-        r = random.choice(valid_rows)
-        c = random.choice(invalid_rows)
-        matrix[r][c] = -2
+        coords = random.choice(valid_coords)
+        matrix[coords[0]][coords[1]] = -2
+        valid_coords.remove(coords)
 
 def get_empty_locations_from_map(map):
     # map = matrix of empty space (0), roads (-1) and buildings (-2)
@@ -94,11 +96,13 @@ def get_empty_locations_from_map(map):
 def save_map_to_npy(map,fname="map.npy",location="."):
     np.save(location+"/"+fname, map)
 
+def save_map_to_csv(map,fname="map.npy",location="."):
+    np.savetxt(location+"/"+fname, map, delimiter=",", fmt="%d")
 
 def load_map_from_npy(fname="map.npy",location="."):
     matrix = np.load(location+"/"+fname, allow_pickle=True)
     return matrix
 
-def load_map_from_txt(fname="map.txt",location="."):
+def load_map_from_csv(fname="map.csv",location="."):
     matrix = np.loadtxt(location+"/"+fname, delimiter=" ", dtype=int)
     return matrix
