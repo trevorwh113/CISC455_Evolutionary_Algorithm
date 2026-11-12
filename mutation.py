@@ -213,7 +213,7 @@ def creep_trashcan(trashcan, dimensions, sigma):
 
     new_y = trashcan[1] + (int) (sigma[1] * random.gauss(0,1))
     new_y = 0 if new_y < 0 else new_y
-    new_y = dimensions[0]-1 if new_y >= dimensions[0] else new_y
+    new_y = dimensions[1]-1 if new_y >= dimensions[1] else new_y
 
     return new_x, new_y
 
@@ -229,33 +229,33 @@ class IllegalBoard(Exception):
     pass
 
 
-# -----------
-# Test
-# -----------
-# Problem information
-import numpy as np
-board = np.array([[0, 0, 0,-2,-2,-2,-2],
-                  [0, 0, 0,-2, 0, 0,-2],
-                  [0, 0, 0, 0, 0, 0,-2],
-                  [0,-2,-2,-2,-1,-1,-1],
-                  [0, 0, 0,-2,-2, 0, 0]], dtype=object)
-rows, columns = board.shape
-max_trashcans = 4
-sigma_bound = 0.7
-individual = [[0,0], [2,4], [2,5], [0,2]]
-sigmas = [[1,1], [1,1], [1,1], [1,1]]
+# # -----------
+# # Test
+# # -----------
+# # Problem information
+# import numpy as np
+# board = np.array([[0, 0, 0,-2,-2,-2,-2],
+#                   [0, 0, 0,-2, 0, 0,-2],
+#                   [0, 0, 0, 0, 0, 0,-2],
+#                   [0,-2,-2,-2,-1,-1,-1],
+#                   [0, 0, 0,-2,-2, 0, 0]], dtype=object)
+# rows, columns = board.shape
+# max_trashcans = 4
+# sigma_bound = 0.7
+# individual = [[0,0], [2,4], [2,5], [0,2]]
+# sigmas = [[1,1], [1,1], [1,1], [1,1]]
 
-learning_rate = 1 / math.sqrt(2 * math.sqrt(len(individual * 2)))
-bound = 1
+# learning_rate = 1 / math.sqrt(2 * math.sqrt(len(individual * 2)))
+# bound = 1
 
-def test_self_adaptive():
-    print("Learning rate: ", learning_rate)
-    print("Sigma bound: ", bound)
-    print("--------------------")
-    for i in range(50):
-        print("Iteration ", i, "\n")
-        print("Individual: ", individual)
-        print("Sigmas: ", sigmas)
-        self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, bound)
+# def test_self_adaptive():
+#     print("Learning rate: ", learning_rate)
+#     print("Sigma bound: ", bound)
+#     print("--------------------")
+#     for i in range(50):
+#         print("Iteration ", i, "\n")
+#         print("Individual: ", individual)
+#         print("Sigmas: ", sigmas)
+#         self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, bound)
 
-test_self_adaptive()
+# test_self_adaptive()
