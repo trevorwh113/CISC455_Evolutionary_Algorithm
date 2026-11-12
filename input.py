@@ -61,7 +61,7 @@ def generate_map(n, m, road_perc=0.2, buildings_perc=0.9, save_to_file=False):
 
     building_generation_1(n,m, matrix, invalid_rows, invalid_cols, buildings_perc)
 
-    return generate_map_simple(n, m)
+    return matrix
 
 def building_generation_1(n, m, matrix, invalid_rows, invalid_cols, buildings_perc):
     # n, m = dimensions of matrix
