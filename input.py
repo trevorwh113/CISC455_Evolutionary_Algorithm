@@ -17,14 +17,11 @@ def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
     
     # start by generating matrix of all 0s
     matrix = np.full((n,m),0,dtype=object)
-    less_pretty_print(matrix)
-    print(type(matrix), n, m)
 
     # have some number of roads? generate horizontal then vertical 
     # roads cant be in adjacent rows/cols, 
     num_roads_n = math.floor(n*road_perc)
     num_roads_m = math.floor(m*road_perc)
-    print(num_roads_n,num_roads_m)
 
     # generate roads - rows
     invalid_rows = set()
