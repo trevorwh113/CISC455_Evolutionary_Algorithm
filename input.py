@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-def generate_map_simple(n, m, save_to_file=False):
+def generate_map_simple(n, m):
     # returns nxm matrix with random locations of empty space (0), roads (-1) and buildings (-2)
     # equal prob for each location
 
@@ -12,7 +12,7 @@ def generate_map_simple(n, m, save_to_file=False):
 
     return matrix
 
-def generate_map(n, m, road_perc=0.2, buildings_perc=0.9, save_to_file=False):
+def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
     # returns nxm matrix with random locations of empty space (0), roads (-1) and buildings (-2)
     
     # start by generating matrix of all 0s
@@ -91,4 +91,14 @@ def get_empty_locations_from_map(map):
     
     return permissable_locs
 
-# def save_map_to_file(n,m,map,f_location):
+def save_map_to_npy(map,fname="map.npy",location="."):
+    np.save(location+"/"+fname, map)
+
+
+def load_map_from_npy(fname="map.npy",location="."):
+    matrix = np.load(location+"/"+fname, allow_pickle=True)
+    return matrix
+
+def load_map_from_txt(fname="map.txt",location="."):
+    matrix = np.loadtxt(location+"/"+fname, delimiter=" ", dtype=int)
+    return matrix
