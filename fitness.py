@@ -1,4 +1,6 @@
+import math
 import numpy as np
+
 # Colour constants from https://sentry.io/answers/print-colored-text-to-terminal-with-python/
 BLACK = '\033[30m'
 RED = '\033[31m'
@@ -10,34 +12,7 @@ CYAN = '\033[36m'
 WHITE = '\033[97m'
 RESET = '\033[0m' # called to return to standard terminal text color
 
-# input 
-input = np.array(
-        [[0, 0, 0, -1, 0, 0],
-         [0, 0, 0, -2, 0, 0],
-         [0, 0, -2, -2, -2, 0],
-         [0, 0, -2, -1, -2, 0],
-         [0, 0, -2, -2, -2, -2],
-         [0, 0, 0, -1, -2, -2],], dtype=object)
-
-individial = [[0,5]]
-
-def fitness(individual): 
-    """
-    Compute fitness of an individual for the trash can alocation problem
-    
-    Parameters:
-       individual (list of coordinates): Where the trash can are.
-
-    Returns:
-        score ():
-    """
-
-    Max = 28
-
-    return Max 
-
-
-def get_pheno(individual):
+def get_pheno(individual, input):
     """
     Computes how far each cell is from a trash can.
 
@@ -58,6 +33,7 @@ def get_pheno(individual):
 
     Parameters:
        individual (list of coordinates): Where the trash can are.
+       input (2D list): map of all of the roads and buildings
 
     Returns:
         pheno (np.array): The map with all the cell populated with how far it is from a trash can.
@@ -66,10 +42,10 @@ def get_pheno(individual):
     pheno = input.copy()
 
     # place the -1 and 0 to None
-    pheno[pheno > -1] = np.nan
+    pheno[pheno >= -1] = np.nan
 
     # inisalize the explore queue and other var needed for the search
-    q = individial.copy()
+    q = individual.copy()
     explored = q.copy()
     end = q[-1]
     counter = 0
@@ -87,7 +63,7 @@ def get_pheno(individual):
         newcells = adj_cells(cell, pheno.shape[1], pheno.shape[0])
         for elem in newcells:
             # check if the cell has been explored or not a building
-              if(not(elem in explored) and pheno[elem[1], elem[0]] != -2):#and (type(pheno[elem[0], elem[1]]) == type(np.nan) or pheno[elem[1], elem[0]] != -2)):
+              if(not(elem in explored) and pheno[elem[1], elem[0]] != -2):
                 # add to queue
                 q.append(elem)
                 explored.append(elem)
@@ -190,5 +166,49 @@ def pretty_print(list):
         output = output + "\n"
     print(output)
 
+def fitness(individual, input, maxStep): 
+    """
+    Compute fitness of an individual for the trash can alocation problem. 
+    
+    Parameters:
+       individual (list of coordinates): Where the trash can are.
+       input (2D list): map of all of the roads and buildings
 
-pretty_print(get_pheno(individial))
+    Returns:
+        score ():The score of an individual. Lower score is better.
+    """
+    # Lower score is better
+    score = 0
+
+    # penalty scores so easy to change
+    nonePenalty = 5
+    canOverPenalty = 5
+    #overStepPenalty = 5
+
+    # get how far each cell is from a trash can
+    map = get_pheno(individual)
+
+    # find out how many of item there is 
+    unique, counts = np.unique(map, return_counts=True)
+    map = dict(zip(unique, counts))
+
+    for elem in unique:
+        # there is a none
+        if (elem == np.nan):
+            score = score - map[elem]*nonePenalty
+
+        # between 1 and max step
+        elif (1 <= elem and elem <= maxStep):
+            score = score + map[elem]*elem
+
+        # bigger than maxstep
+        elif (elem > maxStep):
+            score = score + map[elem]*elem
+        
+    # 1 trash can can easily cover a 7x7 space so a 49 area (if we want 3 steps between cans)
+    trashCanCap = math.ceil(input.shape[0]*input.shape[1]/(maxStep*2+1)**2)
+
+    #  minimization: penalty for each trash can (how much relative to distance penalty?)
+    score = score - (len(individual)-trashCanCap)*canOverPenalty
+
+    return score
