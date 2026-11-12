@@ -1,5 +1,5 @@
 import numpy as np
-# from https://sentry.io/answers/print-colored-text-to-terminal-with-python/
+# Colour constants from https://sentry.io/answers/print-colored-text-to-terminal-with-python/
 BLACK = '\033[30m'
 RED = '\033[31m'
 GREEN = '\033[32m'
@@ -7,102 +7,188 @@ YELLOW = '\033[33m' # orange on some systems
 BLUE = '\033[34m'
 MAGENTA = '\033[35m'
 CYAN = '\033[36m'
-LIGHT_GRAY = '\033[37m'
-DARK_GRAY = '\033[90m'
-BRIGHT_RED = '\033[91m'
-BRIGHT_GREEN = '\033[92m'
-BRIGHT_YELLOW = '\033[93m'
-BRIGHT_BLUE = '\033[94m'
-BRIGHT_MAGENTA = '\033[95m'
-BRIGHT_CYAN = '\033[96m'
 WHITE = '\033[97m'
-
 RESET = '\033[0m' # called to return to standard terminal text color
 
-#input = [[#buildings], (-2)
-#         [#roads]] (-1)
-input = [[[2,2],[4,4],[4,5],[5,5],[5,4]],
-         [[3,1],[3,2],[3,3],[3,4],[3,5],]]
-input = [[0, 0, 0, -1, 0, 0],
-         [0, 0, 0, -1, 0, 0],
-         [0, 0, -2, -1, 0, 0],
-         [0, 0, 0, -1, 0, 0],
-         [0, 0, 0, -1, -2, -2],
-         [0, 0, 0, -1, -2, -2],]
+# input 
+input = np.array(
+        [[0, 0, 0, -1, 0, 0],
+         [0, 0, 0, -2, 0, 0],
+         [0, 0, -2, -2, -2, 0],
+         [0, 0, -2, -1, -2, 0],
+         [0, 0, -2, -2, -2, -2],
+         [0, 0, 0, -1, -2, -2],], dtype=object)
 
-individial = [[1,2],[1,4],[4,3]]
+individial = [[0,5]]
 
-def fitness(individual):  # maximization
+def fitness(individual): 
+    """
+    Compute fitness of an individual for the trash can alocation problem
+    
+    Parameters:
+       individual (list of coordinates): Where the trash can are.
 
-    """Compute fitness of an individual for the 8-queen puzzle"""
+    Returns:
+        score ():
+    """
 
     Max = 28
-    violations = 0 # only diagonal conflicts need to be counted because
-                   # the permutation representation prevents row/column conflicts
-    l = len(individual)
-    for i in range(0, l):
-        for j in range(i + 1, l):
-            # student code begin
-            # detect a diagonal conflict
-            # need to check if j is equal to i+distance ie if i is 1 and j is 2 away, then the number at j should not be 3
-            rowDiff = j-i
-            if(individual[j] == individual[i]+rowDiff):
-                violations= violations+1
-            # student code end
-    return Max - violations
+
+    return Max 
 
 
-def get_pheno(individual):  
-    repeat = True
+def get_pheno(individual):
+    """
+    Computes how far each cell is from a trash can.
+
+        EX it turns 
+        [[0, 0, 0, -1, 0, 0],
+         [0, 0, 0, -2, 0, 0],
+         [0, 0, -2, -2, -2, 0],
+         [0, 0, -2, -1, -2, 0],
+         [0, 0, -2, -2, -2, -2],
+         [0, 0, 0, -1, -2, -2],]
+         to 
+        5 5 5 5 6 7
+        4 4 4-2 6 7
+        3 3-2-2-2 7
+        2 2-2-1-2 8
+        1 1-2-2-2-2
+        0 1 2 3-2-2
+
+    Parameters:
+       individual (list of coordinates): Where the trash can are.
+
+    Returns:
+        pheno (np.array): The map with all the cell populated with how far it is from a trash can.
+    """  
     # create the list to store the pheno type
     pheno = input.copy()
 
     # place the -1 and 0 to None
-    for i in range(len(pheno)):
-        pheno[i] = [None if x > -1 else x for x in pheno[i]]
+    pheno[pheno > -1] = np.nan
 
+    # inisalize the explore queue and other var needed for the search
+    q = individial.copy()
+    explored = q.copy()
+    end = q[-1]
+    counter = 0
+
+    # do breadth first search on the grid to see how min distance that cell is from a trash can
+    while (len(q)>0):
+        # dequeue
+        cell = q.pop(0)
+
+        # check if the cell has a value already
+        if(type(pheno[cell[0], cell[1]]) == type(np.nan) or pheno[cell[1], cell[0]] != -2):
+            pheno[cell[1], cell[0]] = counter
+
+        # add the non explored and non building adjacent cells to the queue
+        newcells = adj_cells(cell, pheno.shape[1], pheno.shape[0])
+        for elem in newcells:
+            # check if the cell has been explored or not a building
+              if(not(elem in explored) and pheno[elem[1], elem[0]] != -2):#and (type(pheno[elem[0], elem[1]]) == type(np.nan) or pheno[elem[1], elem[0]] != -2)):
+                # add to queue
+                q.append(elem)
+                explored.append(elem)
+
+        # check if counter needs to be updated
+        if (end == cell and len(q)>0):
+            end = q[-1]
+            counter+=1  
+    return pheno
+
+def adj_cells(index, col, row): 
+    """
+    Computes all valid cells around an np.array index
+
+    Parameters:
+        index (np.array): Input vector of shape (n,).
+        col (int): How many cols the array has
+        row (int): How many rows the array has.
+
+    Returns:
+        cells (list): list of the coordinates of valid adjacent cells around indez
+    """ 
+    xMax = col-1
+    yMax = row-1
+    cells = []
+
+    # check all 8 cells around the index (the cell same as the index will be skipped) 
+    for i in range(3,6):
+        for j in range(3,6):
+            # i%3-1 gets -1, 0, 1 then add it to the x index
+            x = index[0]+(i%3-1)
+
+            # j%3-1 gets -1, 0, 1 then add it to the y index
+            y = index[1]+(j%3-1)
+            # check if valid index
+            if (0 <= x and x <= xMax):
+                if (0 <= y and y <= yMax):
+                    if(not(x == index[0] and y == index[1])):
+                        # add index to output
+                        cells.append([x,y])
+    return cells
+
+def pretty_print(list): 
+    """
+    Prints to the consol what the city looks like with colours and shapes
+        Building: represend by -2, printed as a cyan █
+        Road: represend by -1, printed as a light grey ■
+        Null: represend by np.nan, printed as a black ■
+        Trash Can: represend by 0, printed as a white 0
+
+        EX:
+        555567
+        444█67
+        33███7
+        22█■█8
+        11████
+        0123██
+
+    Parameters:
+   list (np.array): Map of the city.
+    """  
+
+    """"
     # Placing trash cans
     for i in range(len(individual)):
         temp = individual[i] 
-        pheno[temp[1]][temp[0]] = 0
-
-    #while(repeat):
-    
-    return pheno
-
-def pretty_print(list): 
+        pheno[temp[1], temp[0]] = 0
+    """
     output = "" 
     for i in range(len(list)):
         for j in range(len(list[i])):
-            val = list[i][j]
-            if (val == None):
+            val = list[i, j]
+
+            if (type(val) == type(np.nan) or val == None):
                 output = output + BLACK + "■" + RESET
 
             elif (val == -2):
                 output = output + CYAN + "█" + RESET
 
             elif (val == -1):
-                output = output + WHITE + "■" + RESET
+                output = output + RESET + "■" 
 
             elif (val == 0):
-                output = output + GREEN + "0" + RESET
+                output = output + WHITE+ "0" + RESET
 
             elif (val == 1):
-                output = output + CYAN + "1" + RESET
+                output = output + GREEN + "1" + RESET
 
             elif (val == 2):
-                output = output + YELLOW + "2" + RESET
+                output = output + BLUE+ "2" + RESET
 
             elif (val == 3):
-                output = output + BRIGHT_YELLOW + "3" + RESET
+                output = output + YELLOW + "3" + RESET
 
             elif (val == 4):
-                output = output + RED + "4" + RESET
+                output = output + MAGENTA  + "4" + RESET
 
             else:
-                output = output + val +RESET
+                output = output + RED +str(val) +RESET
         output = output + "\n"
-
     print(output)
+
 
 pretty_print(get_pheno(individial))
