@@ -63,6 +63,7 @@ def building_generation_1(n, m, matrix, invalid_rows, invalid_cols, buildings_pe
     # n, m = dimensions of matrix
     # matrix = map with existing roads but no buildings
     # invalid_rows, invalid_cols: lists of row and column indices that are invalid bc roads
+    
     # adds buildings to given matrix in random spots not containing roads 
 
     valid_rows = [i for i in range(n) if i not in invalid_rows]

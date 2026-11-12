@@ -8,16 +8,16 @@ def initialize_individual(possible_locations, max_cans, min_cans):
     # max_cans = maximum number of trash cans we can have
     # min_cans = minimum number of trash cans we can have
 
+    # returns individual: list of coordinatesin in form [i,j]
+
+    individual = []
+
     num_cans = random.randint(min_cans, max_cans)
     
     # create copy of possible locations to avoid repeats by removing locations as they are added to individual  
     mutate_locs = possible_locations.copy()
 
-    # based on where things cant be..........
-    # generate and then check for and remove any impossible cans? what to do if you end up with 0 cans, is that admissable
-    # OR build list of all possible can locations O(n^2) and then randomly select from that (guarantees at least min_cans cans)
-    individual = []
-
+    # randomly select from list of possible locations, removing them to avoid repeats
     for i in range(num_cans):
         loc_i = random.randint(0, len(mutate_locs)-1)
         individual.append(mutate_locs[loc_i])
@@ -30,6 +30,9 @@ def initialize_population(mu, map, max_cans=None, min_cans=None):
     # mu = population size
     # map = NxM matrix of roads & buildings
     # max_cans, min_cans = (optional) configure maximum or minimum number of cans
+
+    # return population: list of lists of coordinates in in form [i,j]
+
     permissable_locs = get_empty_locations_from_map(map)
     population = []
 
