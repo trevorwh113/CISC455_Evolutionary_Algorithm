@@ -7,8 +7,6 @@ import math
 # -----------------------------------------------------
 # Mutation Selection Operators
 # -----------------------------------------------------
-# TODO: Implement an adaptive or self-adaptive selection method
-
 def random_mutate(individual, board, max_trashcans):
     """
     Performs one type of mutation on the individual at random
@@ -25,8 +23,67 @@ def random_mutate(individual, board, max_trashcans):
         # self_adaptive_modify_one_trashcan(individual, board, sigmas, learning_rate, bound)
         # self_adaptive_modify_all_trashcans(individual, board, sigmas, learning_rate, bound)
 
-def informed_mutate(individual, board, max_trashcans):
-    pass
+def informed_mutate(individual, board, max_trashcans, fitness, fitness_threshold, size_thresholds):
+    """
+    Selects an appropriate mutation strategy based on tuned parameters using
+    a heuristic. If the individual's fitness is high and it is small, meaning
+    its size is under the lower size_threshold, it is too short and performs
+    an add mutation. Likewise, if fitness is high and it is large, meaning
+    longer than the upper size_threshold, it is too long so it performs remove.
+    Always performs a modify mutation to explore locally.
+
+    A high fitness is one above the given fitness_threshold. The size_thresholds 
+    should be a pair of percentages of the max size. For example. [0.2, 0.8] means 
+    an individual is short if has 20% of the max_trashcans allowed, and too long 
+    if it has 80% of the max_trashcans allowed.
+    """
+    num_trashcans = len(individual)
+
+    # Do a random mutation to explore within and sometimes outside the thresholds
+    random_mutate(individual, board, max_trashcans)
+
+    # If fitness poor and it is short, have a higher chance to add trashcans
+    if fitness > fitness_threshold and num_trashcans <= size_thresholds[0] * max_trashcans:
+        add_trashcan(individual, board, max_trashcans)
+
+    # If fitness poor and it is long, have a higher chance to add trashcans
+    elif fitness > fitness_threshold and num_trashcans >= size_thresholds[1] * max_trashcans:
+        remove_trashcan(individual)
+    
+    else:
+        modify_one_trashcan(individual, board)
+
+def learning_mutate(individual, board, max_trashcans, ideal_size, size_sigma, size_learning_rate, size_sigma_bound):
+    """
+    Selects an appropriate mutation strategy based on the learned ideal_size 
+    associated with the individual. Mutates the size_sigma, ensuring it is 
+    always above the size_sigma_bound, then uses it to update the potential 
+    ideal_size. If the current size is less than the ideal_size, favours add 
+    mutations; if it exceeds it, favours remove mutations. Always performs a 
+    modify mutation to explore locally.
+
+    Returns the adjusted ideal_size, size_sigma
+    """
+    # Update the ideal size mutation step size (size_sigma)
+    new_size_sigma = size_sigma * math.exp(size_learning_rate * random.gauss(0,1))
+    new_size_sigma = size_sigma_bound if new_size_sigma < size_sigma_bound else new_size_sigma
+
+    # Update the appropriate learned size; must remain between 0 and max
+    new_ideal_size = ideal_size + (int) (new_size_sigma * random.gauss(0,1))
+    new_ideal_size = 1 if new_ideal_size < 1 else new_ideal_size
+    new_ideal_size = max_trashcans if new_ideal_size > max_trashcans else new_ideal_size
+
+    # Always try moving a trashcan in case they are close but misplaced
+    modify_one_trashcan(individual, board)
+
+    # Add or remove a trashcan depending if it shorter or larger than learned size
+    num_trashcans = len(individual)
+    if num_trashcans < new_ideal_size:
+        add_trashcan(individual, board, max_trashcans)
+    elif num_trashcans > new_ideal_size:
+        remove_trashcan(individual)
+
+    return new_ideal_size, new_size_sigma
 
 # -----------------------------------------------------
 # Basic Mutation Operators
@@ -299,35 +356,3 @@ class IllegalSolution(Exception):
 class IllegalBoard(Exception):
     """ Indicates an illegal input problem. """
     pass
-
-
-# -----------
-# Test
-# -----------
-# Problem information
-import numpy as np
-board = np.array([[0, 0, 0,-2,-2,-2,-2],
-                  [0, 0, 0,-2, 0, 0,-2],
-                  [0, 0, 0, 0, 0, 0,-2],
-                  [0,-2,-2,-2,-1,-1,-1],
-                  [0, 0, 0,-2,-2, 0, 0]], dtype=object)
-rows, columns = board.shape
-max_trashcans = 4
-sigma_bound = 0.7
-individual = [[0,0], [2,4], [2,5], [0,2]]
-sigmas = [[1,1], [1,1], [1,1], [1,1]]
-
-learning_rate = 1 / math.sqrt(2 * math.sqrt(len(individual * 2)))
-bound = 1
-
-def test_self_adaptive():
-    print("Learning rate: ", learning_rate)
-    print("Sigma bound: ", bound)
-    print("--------------------")
-    for i in range(20):
-        print("Iteration ", i, "\n")
-        print("Individual: ", individual)
-        print("Sigmas: ", sigmas)
-        self_adaptive_modify_all_trashcans(individual, board, sigmas, learning_rate, bound)
-
-test_self_adaptive()

@@ -1,5 +1,5 @@
 """
-Unit test coverage for mutation operators. 
+Unit test coverage for mutation operators
 """
 
 import pytest
@@ -377,4 +377,3 @@ class TestAdaptiveModifyHelpers:
             if i != pos:
                 assert candidate[i] == prev_candidate[i]
                 assert sigmas[i] == prev_sigmas[i]
-
