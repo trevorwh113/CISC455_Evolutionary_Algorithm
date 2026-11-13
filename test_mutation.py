@@ -6,10 +6,7 @@ import pytest
 import copy
 import numpy as np
 
-from mutation import (add_trashcan, remove_trashcan, modify_trashcan,
-                      is_free_space, get_board_dimensions, 
-                      update_sigma, creep_trashcan,
-                      IllegalBoard)
+from mutation import *
 
 # Problem information
 board = np.array([[0, 0, 0,-2,-2,-2,-2],
@@ -21,17 +18,102 @@ rows, columns = board.shape
 max_trashcans = 4
 sigma_bound = 1
 
-@pytest.mark.parametrize('times', range(25))
-def test_add_trashcan_to_none(times):
-    """ Tests up to one gene is added and it is not out of bounds """
-    candidate = [] # Although illegal, it simplifies finding the new pair 
-    add_trashcan(candidate, board, max_trashcans)
+# -----------------------------------------------------
+# Basic Mutation Operators
+# -----------------------------------------------------
+class TestAddTrashcan():
 
-    # Should always add exactly 1 or 0 trashcans (if on wall or road)
-    size = len(candidate)
-    assert size == 0 or size == 1
+    @pytest.mark.parametrize('times', range(25))
+    def test_add_trashcan_to_none(self, times):
+        """ Tests up to one gene is added and it is not out of bounds """
+        candidate = [] # Although illegal, it simplifies finding the new pair 
+        add_trashcan(candidate, board, max_trashcans)
 
-    if size == 1:
+        # Should always add exactly 1 or 0 trashcans (if on wall or road)
+        size = len(candidate)
+        assert size == 0 or size == 1
+
+        if size == 1:
+            # The trashcan should be within bounds
+            new_trashcan = candidate[0]
+            assert new_trashcan[0] >= 0 and new_trashcan[0] < rows
+            assert new_trashcan[1] >= 0 and new_trashcan[1] < columns
+
+            # The trashcan should not be on a road or wall
+            tile = board[new_trashcan[0]][new_trashcan[1]]
+            assert tile >= 0
+
+    @pytest.mark.parametrize('times', range(25))
+    def test_add_trashcan_to_some(self, times):
+        """ Tests up to one gene is added and it is not a duplicate """
+        candidate = [[0,0], [0,2]]
+        prev_candidate = copy.deepcopy(candidate)
+        add_trashcan(candidate, board, max_trashcans)
+
+        # Should always add exactly 1 or 0 trashcans
+        size = len(candidate)
+        prev_size = len(prev_candidate)
+        assert size == prev_size or size == prev_size + 1
+
+        # If nothing was added
+        if size == prev_size:
+            # Existing trashcans should not be changed
+            assert candidate == prev_candidate
+
+        # If one was added
+        else:
+            # The new trash can should not be a duplicate
+            already_seen = []
+            for trashcan in candidate:
+                assert trashcan not in already_seen
+                already_seen.append(trashcan)
+
+            # Existing trashcans should not be changed
+            for trashcan in prev_candidate:
+                assert trashcan in candidate
+
+    def test_add_trashcan_maxed_out(self):
+        """ Tests no genes are added if it is of maximum size (max_trashcans) """
+        candidate = [[0,0], [0,2], [2,3], [1,1]]
+        prev_candidate = copy.deepcopy(candidate)
+        add_trashcan(candidate, board, max_trashcans)
+        # There should be no changes to the solution
+        assert candidate == prev_candidate
+
+class TestRemoveTraschcan:
+    def test_remove_trashcan_only_one(self):
+        """ Tests no genes are removed if it is of minimum size (1) """
+        candidate = [[0,0]]
+        prev_candidate = copy.deepcopy(candidate)
+        remove_trashcan(candidate)
+        # There should be no changes to the solution
+        assert candidate == prev_candidate
+
+    @pytest.mark.parametrize('times', range(10))
+    def test_remove_trashcan_more_than_one(self, times):
+        """ Tests that only one gene is removed """
+        candidate = [[0,0], [0,2], [2,3], [1,1]]
+        prev_candidate = copy.deepcopy(candidate)
+        remove_trashcan(candidate)
+
+        # Exactly one trashcan should be removed
+        assert len(candidate) == len(prev_candidate) - 1
+
+        # None of the remaining transcans should be changed
+        for trashcan in candidate:
+            assert trashcan in prev_candidate
+
+class TestModifyOneTrashcan:
+    @pytest.mark.parametrize('times', range(25))
+    def test_modify_trashcan_from_one(self, times):
+        """ Tests up to one gene is modified and it is not out of bounds """
+        candidate = [[1,1]]
+        prev_candidate = copy.deepcopy(candidate)
+        modify_one_trashcan(candidate, board)
+
+        # The size of the candidate should be the same
+        assert len(candidate) == len(prev_candidate)
+
         # The trashcan should be within bounds
         new_trashcan = candidate[0]
         assert new_trashcan[0] >= 0 and new_trashcan[0] < rows
@@ -41,152 +123,77 @@ def test_add_trashcan_to_none(times):
         tile = board[new_trashcan[0]][new_trashcan[1]]
         assert tile >= 0
 
-@pytest.mark.parametrize('times', range(45))
-def test_add_trashcan_to_some(times):
-    """ Tests up to one gene is added and it is not a duplicate """
-    candidate = [[0,0], [0,2]]
-    prev_candidate = copy.deepcopy(candidate)
-    add_trashcan(candidate, board, max_trashcans)
+    @pytest.mark.parametrize('times', range(45))
+    def test_modify_trashcan_from_many(self, times):
+        """ Tests up to one gene is modified and it is not a duplicate """
+        candidate = [[0,0], [0,2], [2,3]]
+        prev_candidate = copy.deepcopy(candidate)
+        modify_one_trashcan(candidate, board)
 
-    # Should always add exactly 1 or 0 trashcans
-    size = len(candidate)
-    prev_size = len(prev_candidate)
-    assert size == prev_size or size == prev_size + 1
+        # The size of the candidate should be the same
+        assert len(candidate) == len(prev_candidate)
 
-    # If nothing was added
-    if size == prev_size:
-        # Existing trashcans should not be changed
-        assert candidate == prev_candidate
-
-    # If one was added
-    else:
-        # The new trash can should not be a duplicate
+        # The candidate should have no duplicates
         already_seen = []
         for trashcan in candidate:
             assert trashcan not in already_seen
             already_seen.append(trashcan)
 
-        # Existing trashcans should not be changed
-        for trashcan in prev_candidate:
-            assert trashcan in candidate
+        # The candidate should have exactly 1 or 0 changed genes
+        numDifferentGenes = 0
+        for trashcan in candidate:
+            if trashcan not in prev_candidate:
+                numDifferentGenes += 1
+        assert numDifferentGenes == 0 or numDifferentGenes == 1
 
-def test_add_trashcan_maxed_out():
-    """ Tests no genes are added if it is of maximum size (max_trashcans) """
-    candidate = [[0,0], [0,2], [2,3], [1,1]]
-    prev_candidate = copy.deepcopy(candidate)
-    add_trashcan(candidate, board, max_trashcans)
-    # There should be no changes to the solution
-    assert candidate == prev_candidate
+class TestInputBoard:    
+    def test_is_free_space(self):
+        """ Tests all possible tile values """
+        assert is_free_space([0,0], board)      #  0 = free
+        assert not is_free_space([0,4], board)  # -2 = building
+        assert not is_free_space([3,4], board)  # -1 = road
 
-def test_remove_trashcan_only_one():
-    """ Tests no genes are removed if it is of minimum size (1) """
-    candidate = [[0,0]]
-    prev_candidate = copy.deepcopy(candidate)
-    remove_trashcan(candidate)
-    # There should be no changes to the solution
-    assert candidate == prev_candidate
+    def test_get_board_dimensions(self):
+        """ Tests that dimensions are correct and exceptions are thrown """
+        dimensions = get_board_dimensions(board)
+        assert dimensions == (5,7)
+        with pytest.raises(IllegalBoard):
+            # 1 dimensional
+            get_board_dimensions(np.array([]))
+        with pytest.raises(IllegalBoard):
+            # 2 dimensional but no elements
+            get_board_dimensions(np.array([[]]))
+        with pytest.raises(IllegalBoard):
+            # 3 dimensional
+            get_board_dimensions(np.array([[[0,0], [0,0]], [[0,0], [0,0]]]))
 
-@pytest.mark.parametrize('times', range(10))
-def test_remove_trashcan_more_than_one(times):
-    """ Tests that only one gene is removed """
-    candidate = [[0,0], [0,2], [2,3], [1,1]]
-    prev_candidate = copy.deepcopy(candidate)
-    remove_trashcan(candidate)
+class TestSimpleModifyHelpers:
+    @pytest.mark.parametrize('times', range(10))
+    def test_creep_trashcan(self, times):
+        """ Ensure the new x value is within the bounds """
+        trashcan = [1,1]
+        prev_trashcan = copy.deepcopy(trashcan)
 
-    # Exactly one trashcan should be removed
-    assert len(candidate) == len(prev_candidate) - 1
+        # Trashcan itself is unchaged for now, and new x is within bounds
+        new_x, new_y = creep_trashcan(trashcan, (rows, columns), sigma=[10,0])
+        assert trashcan == prev_trashcan
+        assert new_x >= 0 and new_x < rows
+        assert new_y == trashcan[1]
 
-    # None of the remaining transcans should be changed
-    for trashcan in candidate:
-        assert trashcan in prev_candidate
+        # If step size is 0, it should be unchanged
+        new_x, new_y = creep_trashcan(trashcan, (rows, columns), sigma=[0,10])
+        assert trashcan == prev_trashcan
+        assert new_x == trashcan[0]
+        assert new_y >= 0 and new_y < columns
 
-@pytest.mark.parametrize('times', range(25))
-def test_modify_trashcan_from_one(times):
-    """ Tests up to one gene is modified and it is not out of bounds """
-    candidate = [[1,1]]
-    prev_candidate = copy.deepcopy(candidate)
-    modify_trashcan(candidate, board)
+class TestAdaptiveModifyHelpers:
+    @pytest.mark.parametrize('times', range(10))
+    def test_update_sigma(self, times):
+        """ Sigma y should never be less than bound, and sigma y is unchanged """
+        sigma = [1,1]
+        learning_rate = 2
+        update_sigma(sigma, learning_rate, sigma_bound)
 
-    # The size of the candidate should be the same
-    assert len(candidate) == len(prev_candidate)
-
-    # The trashcan should be within bounds
-    new_trashcan = candidate[0]
-    assert new_trashcan[0] >= 0 and new_trashcan[0] < rows
-    assert new_trashcan[1] >= 0 and new_trashcan[1] < columns
-
-    # The trashcan should not be on a road or wall
-    tile = board[new_trashcan[0]][new_trashcan[1]]
-    assert tile >= 0
-
-@pytest.mark.parametrize('times', range(45))
-def test_modify_trashcan_from_many(times):
-    """ Tests up to one gene is modified and it is not a duplicate """
-    candidate = [[0,0], [0,2], [2,3]]
-    prev_candidate = copy.deepcopy(candidate)
-    modify_trashcan(candidate, board)
-
-    # The size of the candidate should be the same
-    assert len(candidate) == len(prev_candidate)
-
-    # The candidate should have no duplicates
-    already_seen = []
-    for trashcan in candidate:
-        assert trashcan not in already_seen
-        already_seen.append(trashcan)
-
-    # The candidate should have exactly 1 or 0 changed genes
-    numDifferentGenes = 0
-    for trashcan in candidate:
-        if trashcan not in prev_candidate:
-            numDifferentGenes += 1
-    assert numDifferentGenes == 0 or numDifferentGenes == 1
-
-def test_is_free_space():
-    """ Tests all possible tile values """
-    assert is_free_space([0,0], board)      #  0 = free
-    assert not is_free_space([0,4], board)  # -2 = building
-    assert not is_free_space([3,4], board)  # -1 = road
-
-def test_get_board_dimensions():
-    """ Tests that dimensions are correct and exceptions are thrown """
-    dimensions = get_board_dimensions(board)
-    assert dimensions == (5,7)
-    with pytest.raises(IllegalBoard):
-        # 1 dimensional
-        get_board_dimensions(np.array([]))
-    with pytest.raises(IllegalBoard):
-        # 2 dimensional but no elements
-        get_board_dimensions(np.array([[]]))
-    with pytest.raises(IllegalBoard):
-        # 3 dimensional
-        get_board_dimensions(np.array([[[0,0], [0,0]], [[0,0], [0,0]]]))
-
-@pytest.mark.parametrize('times', range(10))
-def test_update_sigma(times):
-    """ Sigma y should never be less than bound, and sigma y is unchanged """
-    sigma = [1,1]
-    learning_rate = 2
-    update_sigma(sigma, learning_rate, sigma_bound)
-
-    # Sigmas may change but never dip below the bound
-    assert sigma[0] >= sigma_bound
-    assert sigma[1] >= sigma_bound
-
-@pytest.mark.parametrize('times', range(10))
-def test_creep_trashcan(times):
-    """ Ensure the new x value is within the bounds """
-    trashcan = [1,1]
-    prev_trashcan = copy.deepcopy(trashcan)
-
-    # Trashcan itself is unchaged for now, and new x is within bounds
-    new_x, new_y = creep_trashcan(trashcan, (rows, columns), sigma=[10,0])
-    assert trashcan == prev_trashcan
-    assert new_x >= 0 and new_x < rows
-    assert new_y == trashcan[1]
-
-    # If step size is 0, it should be unchanged
-    new_x, new_y = creep_trashcan(trashcan, (rows, columns), sigma=[0,10])
-    assert trashcan == prev_trashcan
-    assert new_x == trashcan[0]
-    assert new_y >= 0 and new_y < columns
+        # Sigmas may change but never dip below the bound
+        assert sigma[0] >= sigma_bound
+        assert sigma[1] >= sigma_bound

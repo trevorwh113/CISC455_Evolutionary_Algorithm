@@ -8,7 +8,6 @@ import math
 # Mutation Selection Operators
 # -----------------------------------------------------
 # TODO: Implement an adaptive or self-adaptive selection method
-# TODO: Test the self-adaptive creep mutation
 
 def random_mutate(individual, board, max_trashcans):
     """
@@ -79,13 +78,14 @@ def remove_trashcan(individual):
         pos = random.randint(0,len(individual)-1)
         individual.pop(pos)
 
-# TODO: Should this operate on all the existing ones or just pick one to change
-def modify_trashcan(individual, board, sigma=[1,1]):
+def modify_one_trashcan(individual, board, sigma=[1,1]):
     """ 
-    Modifies a single coordinate from the candidate solution using
-    arithmetic creep, in place. Limits perturbations to the board 
-    size. Creep step uses standard deviation 1 by default (sigma)
-    for both coordinates.
+    Modifies the coordinates for a single random trashcan in the 
+    candidate solution using arithmetic creep, in place. Limits 
+    perturbations to the board size. Creep step uses standard 
+    deviations specified in 'sigmas', containing a pair of x and y 
+    step sizes for each chromosome (trashcan). Step sizes adapt based 
+    on the global 'learning_rate', and cannot drop below 'bound'.
 
     Leaves the individual unchanged if one of the following is true: 
     all perturbations are 0, the new trashcan is a duplicate, or the 
@@ -102,37 +102,51 @@ def modify_trashcan(individual, board, sigma=[1,1]):
     if (len(individual) == 0):
         raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
 
-    # Pick a random trashcan to mutate
     dimensions = get_board_dimensions(board)
+
+    # Pick a random trashcan to mutate
     pos = random.randint(0,len(individual)-1)
+    modify_trashcan(individual, board, sigma, pos, dimensions)
 
-    # Creep both directions by a small integer, stopping at bounds
-    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigma)
+def modify_all_trashcans(individual, board, sigma=[1,1]):
+    """ 
+    Modifies the coordinates for all trashcans in the candidate 
+    solution using arithmetic creep, in place. Limits perturbations 
+    to the board size. Creep step uses standard deviation 1 by default
+    (sigma) for both coordinates.
 
-    # Do not modify if it is a duplicate or on a road or wall
-    new_trashcan = [new_x, new_y]
-    if new_trashcan not in individual and is_free_space(new_trashcan, board):
-        individual[pos] = new_trashcan
+    Leaves the individual unchanged if one of the following is true: 
+    all perturbations are 0, all new trashcans are duplicates or on 
+    a road or wall.
 
+    Throws an IllegalSolution exception if the input genome is empty.
+    Throws an IllegalBoard exception if the problem board has no rows 
+    or no columns.
+
+    Properties:
+    - Local exploitation (try to improve 'ok' trashcans)
+    - Preserves candidate validity
+    """
+    if (len(individual) == 0):
+        raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
+
+    dimensions = get_board_dimensions(board)
+    num_traschans = len(individual)
+
+    # Mutates every trashcan in the candidate
+    for pos in range(num_traschans):
+        modify_trashcan(individual, board, sigma, pos, dimensions)
+    
 # -----------------------------------------------------
 # Self-Adaptive Mutation Operators
 # -----------------------------------------------------
-# TODO: Should this operate on all the existing ones or just pick one to change
 # TODO: This should use both a local and global learning rate
-def self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, bound):
+def self_adaptive_modify_one_trashcan(individual, board, sigmas, learning_rate, bound):
     """ 
-    Modifies a single coordinate from the candidate solution using
-    arithmetic creep, in place. Limits perturbations to the board 
-    size. Creep step uses standard deviations sigmas, containing a
-    pair of x and y step sizes for each chromosome (trashcan). Step
-    sizes adapt based on the global learning rate, and cannot
-    drop below bound.
-
-    - individual: [[x,y],              [x2,y2],                ...]
-    - sigmas:     [[sigma_x, sigma_y], [sigma_x_2, sigma_y_2], ...]
-    - board: [[0,0,-1], [-2,-2,-2], ...]
-    - learning rate: int
-    - bound: int
+    Modifies the coordinates for a single random trashcan in the 
+    candidate solution using arithmetic creep, in place. Limits 
+    perturbations to the board size. Creep step uses standard
+    deviation 1 by default (sigma) for both coordinates.
 
     Leaves the individual unchanged if one of the following is true: 
     all perturbations are 0, the new trashcan is a duplicate, or the 
@@ -149,20 +163,42 @@ def self_adaptive_modify_trashcan(individual, sigmas, board, learning_rate, boun
     if (len(individual) == 0):
         raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
 
-    # Pick a random trashcan to mutate
     dimensions = get_board_dimensions(board)
+
+    # Pick a random trashcan to mutate
     pos = random.randint(0,len(individual)-1)
+    self_adaptive_modify_trashcan(individual, sigmas, board, pos, dimensions, learning_rate, bound)
 
-    # Mutate the step size
-    update_sigma(sigmas[pos], learning_rate, bound)
+def self_adaptive_modify_all_trashcans(individual, board, sigmas, learning_rate, bound):
+    """ 
+    Modifies the coordinates for all trashcans in the candidate 
+    solution using arithmetic creep, in place. Limits perturbations 
+    to the board size. Creep step uses standard deviations specified
+    in 'sigmas', containing a pair of x and y step sizes for each 
+    chromosome (trashcan). Step sizes adapt based on the global
+    'learning_rate', and cannot drop below 'bound'.
 
-    # Creep both directions by a small integer, stopping at bounds
-    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
+    Leaves the individual unchanged if one of the following is true: 
+    all perturbations are 0, all new trashcans are duplicates or on 
+    a road or wall.
 
-    # Do not modify if it is a duplicate or on a road or wall
-    new_trashcan = [new_x, new_y]
-    if new_trashcan not in individual and is_free_space(new_trashcan, board):
-        individual[pos] = new_trashcan
+    Throws an IllegalSolution exception if the input genome is empty.
+    Throws an IllegalBoard exception if the problem board has no rows 
+    or no columns.
+
+    Properties:
+    - Local exploitation (try to improve 'ok' trashcans)
+    - Preserves candidate validity
+    """
+    if (len(individual) == 0):
+        raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
+
+    dimensions = get_board_dimensions(board)
+    num_traschans = len(individual)
+
+    # Mutates every trashcan in the candidate
+    for pos in range(num_traschans):
+        self_adaptive_modify_trashcan(individual, sigmas, board, pos, dimensions, learning_rate, bound)
 
 # -----------------------------------------------------
 # Helper functions
@@ -216,6 +252,29 @@ def creep_trashcan(trashcan, dimensions, sigma):
     new_y = dimensions[1]-1 if new_y >= dimensions[1] else new_y
 
     return new_x, new_y
+
+def modify_trashcan(individual, sigma, board, pos, dimensions):
+    """ Performs simple creep mutation on a single position """
+    # Creep both directions by a small integer, stopping at bounds
+    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigma[pos])
+
+    # Do not modify if it is a duplicate or on a road or wall
+    new_trashcan = [new_x, new_y]
+    if new_trashcan not in individual and is_free_space(new_trashcan, board):
+        individual[pos] = new_trashcan
+
+def self_adaptive_modify_trashcan(individual, sigmas, board, pos, dimensions, learning_rate, bound):
+    """ Performs self-adaptive creep mutation on a single position """
+    # Update the creep step size first
+    update_sigma(sigmas[pos], learning_rate, bound)
+
+    # Creep both directions by a small integer, stopping at bounds
+    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
+
+    # Do not modify if it is a duplicate or on a road or wall
+    new_trashcan = [new_x, new_y]
+    if new_trashcan not in individual and is_free_space(new_trashcan, board):
+        individual[pos] = new_trashcan
 
 # -----------------------------------------------------
 # Exceptions
