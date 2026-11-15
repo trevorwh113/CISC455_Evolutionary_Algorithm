@@ -186,7 +186,7 @@ def fitness(individual, input, maxStep):
     #overStepPenalty = 5
 
     # get how far each cell is from a trash can
-    map = get_pheno(individual)
+    map = get_pheno(individual, input)
 
     # find out how many of item there is 
     unique, counts = np.unique(map, return_counts=True)
