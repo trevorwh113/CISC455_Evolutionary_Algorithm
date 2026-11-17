@@ -5,7 +5,55 @@ This file performs recombination for trash can placement evolutionary algorithm.
 We use three different recombination methods: n-point crossover, arithmetic crossover, and uniform crossover 
 """
 
-def n_point_crossover(parent1, parent2, n):
+def fix_child(child, grid):
+    """
+    Ensures no duplicates
+    Fixes a child solution to ensure that all trash can coordinates are valid (i.e., not on roads or buildings).
+
+    - Valid coordinates are those that are not on roads (-1) or buildings (-2).
+    - Replaces invalid coordinates with random valid coordinates from the grid.
+
+    Returns a fixed child solution with valid coordinates.
+    """
+
+    valid_locations = []
+
+    #find all valid locations
+    for x in range(len(grid)):
+        for y in range(len(grid[x])):
+            if grid[x][y] != -1 and grid[x][y] != -2:
+                valid_locations.append([x, y])
+
+    fixed_child = []
+
+    for coordinate in child:
+        x, y = coordinate
+        #check if the coordinate is valid
+        if (0 <= x < len(grid) and
+            0 <= y < len(grid[x]) and
+            grid[x][y] != -1 and
+            grid[x][y] != -2 and
+            coordinate not in fixed_child):
+
+            fixed_child.append(coordinate)
+
+        else:
+            #find valid locations that are not already occupied
+            available_locations = []
+
+            for location in valid_locations:
+                if location not in fixed_child:
+                    available_locations.append(location)
+
+            #replace invalid or duplicate coordinate
+            if len(available_locations) > 0:
+                new_location = random.choice(available_locations)
+                fixed_child.append(new_location)
+
+    return fixed_child
+
+
+def n_point_crossover(parent1, parent2, n, grid):
     """
     n-point crossover
 
@@ -23,7 +71,7 @@ def n_point_crossover(parent1, parent2, n):
 
     # choose crossover points
     if min_length < 2:
-        return child1, child2
+        return fix_child(child1, grid), fix_child(child2, grid)
 
     points = sorted(random.sample(range(1, min_length), min(n, min_length - 1)))
 
@@ -40,10 +88,10 @@ def n_point_crossover(parent1, parent2, n):
             child1[start:end] = parent2[start:end]
             child2[start:end] = parent1[start:end]
 
-    return child1, child2
+    return fix_child(child1, grid), fix_child(child2, grid)
 
 
-def arithmetic_crossover(parent1, parent2, n):
+def arithmetic_crossover(parent1, parent2, grid):
     """
     n-point arithmetic crossover
 
@@ -56,14 +104,6 @@ def arithmetic_crossover(parent1, parent2, n):
     child2 = []
 
     min_length = min(len(parent1), len(parent2))
-
-    # choose crossover points
-    if min_length < 2:
-        points = [0, min_length]
-    else:
-        points = random.sample(range(1, min_length), min(n, min_length - 1))
-        points.sort()
-        points = [0] + points + [min_length]
 
     # create coordinates between the parents
     for i in range(min_length):
@@ -92,7 +132,7 @@ def arithmetic_crossover(parent1, parent2, n):
         child1.extend(parent2[min_length:])
         child2.extend(parent2[min_length:])
 
-    return child1, child2
+    return fix_child(child1, grid), fix_child(child2, grid)
 
 
 # --------------------------------------------------
@@ -103,7 +143,7 @@ def arithmetic_crossover(parent1, parent2, n):
 # Keep the extra tail from each original parent.
 
 
-def uniform_crossover(parent1, parent2):
+def uniform_crossover(parent1, parent2, grid):
 
     """
     uniform crossover 
@@ -135,4 +175,4 @@ def uniform_crossover(parent1, parent2):
     #keep the remaining coordinates
     child1.extend(parent1[min_length:])
     child2.extend(parent2[min_length:]) 
-    return child1, child2
+    return fix_child(child1, grid), fix_child(child2, grid)
