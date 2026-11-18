@@ -48,13 +48,12 @@ def main():
         # print best fitness solutions
         k = 1
         for j in range(0, popsize):
-            if fitness_list[j] == max(fitness_list):
+            if fitness_list[j] == min(fitness_list):
                 print("gen", gen, "best solution",k, "fitness:", fitness_list[j])
                 print(population[j])
                 pheno = get_pheno(population[j], map)
                 pretty_print(pheno)
                 k = k + 1
-                break
 
         # parent selection
         parents = parent_selection(mating_pool_size, population, fitness_list)
