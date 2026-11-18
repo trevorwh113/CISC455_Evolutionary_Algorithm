@@ -21,7 +21,7 @@ def main():
     max_trashcans = N*M
     gen_limit = 20
     n_crossover = 2
-    crossover_method = lambda parent1, parent2, n: n_point_crossover(parent1, parent2,n)
+    crossover_method = lambda parent1, parent2, n, map: n_point_crossover(parent1, parent2,n,map)
     mutation_method = lambda individual, board, max_cans: random_mutate(individual, board, max_cans)
 
     # generate map & save to file
@@ -64,7 +64,7 @@ def main():
         while len(children) < mating_pool_size:
             
             # recombination (or maybe choose randomly?)
-            child1, child2 = crossover_method(parents[i], parents[i+1], n_crossover) #parents[i], parents[i+1] 
+            child1, child2 = crossover_method(parents[i], parents[i+1], n_crossover, map) #parents[i], parents[i+1] 
 
             # mutation
             mutation_method(child1, map, max_trashcans)
