@@ -17,13 +17,19 @@ def parent_selection(lambda_pointers, population, fitness):
         selected_individuals: list
         A list of selected individuals based on their fitness.
     """
-    total_fitness = sum(fitness)
+    inverse_fitness = []
+
+    for i in range(len(population)):
+        #inverse fitness for minimization problems
+        inverse_fitness.append(1 / (fitness[i] + 1))
+
+    total_fitness = sum(inverse_fitness)
 
     #assign probabilities to each individual based on their fitness
     probabilities = []
 
     for i in range(len(population)):
-        probabilities.append(fitness[i] / total_fitness)
+        probabilities.append(inverse_fitness[i]/total_fitness)
     
     #generate random pointers
     spacing = 1 / lambda_pointers
