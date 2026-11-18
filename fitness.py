@@ -56,14 +56,14 @@ def get_pheno(individual, input):
         cell = q.pop(0)
 
         # check if the cell has a value already
-        if(type(pheno[cell[0], cell[1]]) == type(np.nan) or pheno[cell[1], cell[0]] != -2):
-            pheno[cell[1], cell[0]] = counter
+        if(type(pheno[cell[0], cell[1]]) == type(np.nan) or pheno[cell[0], cell[1]] != -2):
+            pheno[cell[0], cell[1]] = counter
 
         # add the non explored and non building adjacent cells to the queue
-        newcells = adj_cells(cell, pheno.shape[1], pheno.shape[0])
+        newcells = adj_cells(cell, pheno.shape[0], pheno.shape[1])
         for elem in newcells:
             # check if the cell has been explored or not a building
-              if(not(elem in explored) and pheno[elem[1], elem[0]] != -2):
+              if(not(elem in explored) and pheno[elem[0], elem[1]] != -2):
                 # add to queue
                 q.append(elem)
                 explored.append(elem)
@@ -86,8 +86,8 @@ def adj_cells(index, col, row):
     Returns:
         cells (list): list of the coordinates of valid adjacent cells around indez
     """ 
-    xMax = col-1
-    yMax = row-1
+    xMax = row-1
+    yMax = col-1
     cells = []
 
     # check all 8 cells around the index (the cell same as the index will be skipped) 
@@ -186,7 +186,7 @@ def fitness(individual, input, maxStep):
     overStepPenalty = 5
 
     # get how far each cell is from a trash can
-    map = get_pheno(individual)
+    map = get_pheno(individual, input)
 
     # find out how many of item there is 
     unique, counts = np.unique(map, return_counts=True)
