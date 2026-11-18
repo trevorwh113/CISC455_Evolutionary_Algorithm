@@ -166,7 +166,7 @@ def pretty_print(list):
         output = output + "\n"
     print(output)
 
-def fitness(individual, input, maxStep): 
+def fitness(individual, input, maxStep,nonePenalty = 5, canOverPenalty = 5, overStepPenalty = 5 ): 
     """
     Compute fitness of an individual for the trash can alocation problem. 
     
@@ -180,10 +180,7 @@ def fitness(individual, input, maxStep):
     # Lower score is better
     score = 0
 
-    # penalty scores so easy to change
-    nonePenalty = 5
-    canOverPenalty = 5
-    overStepPenalty = 5
+
 
     # get how far each cell is from a trash can
     map = get_pheno(individual, input)
@@ -206,9 +203,14 @@ def fitness(individual, input, maxStep):
             score = score + map[elem]*elem*overStepPenalty
         
     # 1 trash can can easily cover a 7x7 space so a 49 area (if we want 3 steps between cans)
-    trashCanCap = math.ceil(input.shape[0]*input.shape[1]/(maxStep*2+1)**2)
+    trashCanCap = calculate_can_cap(input, maxStep)
 
     #  minimization: penalty for each trash can (how much relative to distance penalty?)
     score = score + (len(individual)-trashCanCap)*canOverPenalty
 
     return score
+
+def calculate_can_cap(input, maxStep):
+    trashCanCap = math.ceil(input.shape[0]*input.shape[1]/(maxStep*2+1)**2)
+    return trashCanCap
+
