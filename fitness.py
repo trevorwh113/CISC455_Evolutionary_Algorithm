@@ -183,7 +183,7 @@ def fitness(individual, input, maxStep):
     # penalty scores so easy to change
     nonePenalty = 5
     canOverPenalty = 5
-    #overStepPenalty = 5
+    overStepPenalty = 5
 
     # get how far each cell is from a trash can
     map = get_pheno(individual)
@@ -195,7 +195,7 @@ def fitness(individual, input, maxStep):
     for elem in unique:
         # there is a none
         if (elem == np.nan):
-            score = score - map[elem]*nonePenalty
+            score = score + map[elem]*nonePenalty
 
         # between 1 and max step
         elif (1 <= elem and elem <= maxStep):
@@ -203,12 +203,12 @@ def fitness(individual, input, maxStep):
 
         # bigger than maxstep
         elif (elem > maxStep):
-            score = score + map[elem]*elem
+            score = score + map[elem]*elem*overStepPenalty
         
     # 1 trash can can easily cover a 7x7 space so a 49 area (if we want 3 steps between cans)
     trashCanCap = math.ceil(input.shape[0]*input.shape[1]/(maxStep*2+1)**2)
 
     #  minimization: penalty for each trash can (how much relative to distance penalty?)
-    score = score - (len(individual)-trashCanCap)*canOverPenalty
+    score = score + (len(individual)-trashCanCap)*canOverPenalty
 
     return score
