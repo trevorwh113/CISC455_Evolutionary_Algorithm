@@ -19,7 +19,7 @@ def main():
     ideal_steps_from_trashcan = 4 # (bc ideal is 3)
     gen_limit = 150
     n_crossover = 2
-    crossover_method = lambda parent1, parent2, n, grid: n_point_crossover(parent1, parent2,n,grid)
+    crossover_method = lambda parent1, parent2, n, map: n_point_crossover(parent1, parent2, n, map)
     mutation_method = lambda individual, board, max_cans: random_mutate(individual, board, max_cans)
     # fitness penalties
     nonePenalty = 10 # should be high (handle gaps in building)
