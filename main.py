@@ -30,6 +30,11 @@ def main():
     # save_map_to_npy(map, "baseline_map.npy", default_file_location)
     # save_map_to_csv(map, "baseline_map.csv", default_file_location)
 
+    # load map from csv file (uncomment both lines to use this option)
+    # map = load_map_from_csv("map_test_easy.csv", "./saved_maps")
+    # N, M = map.shape
+
+    # load map from npy file
     # map = load_map_from_npy("baseline_map.npy", default_file_location)
     pretty_print(map)
 
