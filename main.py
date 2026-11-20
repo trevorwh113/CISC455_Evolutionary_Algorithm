@@ -142,7 +142,7 @@ def main():
     # file saving and loading consts
     default_input_location = "./saved_maps/"
     default_output_location = "./saved_output/"
-    run_name = "test19" # modify for each new run so that contents don't overwrite 
+    run_name = "test" # modify for each new run so that contents don't overwrite 
 
     # generate map & save to file
 
@@ -156,8 +156,9 @@ def main():
     # initialize population
     population = initialize_population(popsize, map)
 
-    # open file for storing output - comment this out if only want to print to console
+    # open file for storing output - make f None if only want to print to console
     f = open(default_output_location + run_name + ".html", "x", encoding="utf-8")
+    # f = None
 
     # begin evolution    
     pretty_print(map)
