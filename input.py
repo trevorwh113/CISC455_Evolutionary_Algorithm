@@ -102,5 +102,5 @@ def load_map_from_npy(fname="map.npy",location="."):
     return matrix
 
 def load_map_from_csv(fname="map.csv",location="."):
-    matrix = np.loadtxt(location+"/"+fname, delimiter=" ", dtype=int)
-    return matrix
+    matrix = np.loadtxt(location+"/"+fname, delimiter=",", dtype=int)
+    return matrix.astype(object)
