@@ -4,11 +4,15 @@ from input import get_empty_locations_from_map
 
 # map = matrix of roads & 
 def initialize_individual(possible_locations, max_cans, min_cans):
-    # possible locations = list of possible coordinates for cans in [i,j] form
-    # max_cans = maximum number of trash cans we can have
-    # min_cans = minimum number of trash cans we can have
+    """
+    Initializes one individual.
 
-    # returns individual: list of coordinatesin in form [i,j]
+    possible locations = list of possible coordinates for cans in [i,j] form
+    max_cans = maximum number of trash cans an individual can have
+    min_cans = minimum number of trash cans an individual can have
+
+    returns individual: list of coordinatesin in the form [i,j]
+    """
 
     individual = []
 
@@ -27,11 +31,18 @@ def initialize_individual(possible_locations, max_cans, min_cans):
 
 
 def initialize_population(mu, map, max_cans=None, min_cans=None):
-    # mu = population size
-    # map = NxM matrix of roads & buildings
-    # max_cans, min_cans = (optional) configure maximum or minimum number of cans
+    """
+    Initializes whole population.
 
-    # return population: list of lists of coordinates in in form [i,j]
+    mu = population size
+    map = NxM matrix of roads & buildings
+    max_cans = maximum number of trash cans an individual can have 
+                (if None: will be set to total number of free spaces)
+    min_cans = minimum number of trash cans an individual can have 
+                (if None: 0)
+
+    return population: list of lists of coordinates in in form [i,j]
+    """
 
     permissable_locs = get_empty_locations_from_map(map)
     population = []
@@ -48,6 +59,7 @@ def initialize_population(mu, map, max_cans=None, min_cans=None):
         population.append(initialize_individual(permissable_locs, max, min))
 
     return population
+
 
 def print_population(population):
     print("POPULATION:")

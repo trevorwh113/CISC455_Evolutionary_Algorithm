@@ -3,17 +3,36 @@ import random
 
 import numpy as np
 
+
 def generate_map_simple(n, m):
-    # returns nxm matrix with random locations of empty space (0), roads (-1) and buildings (-2)
-    # equal prob for each location
+    """
+    Builds a random map of the given dimensions, with equal probability for generation of roads, 
+    buildings and empty space.
+
+    returns nxm matrix with random locations of empty space (0), roads (-1), and buildings (-2)
+    """
 
     rng = np.random.default_rng()
     matrix = rng.integers(low=-2, high=1, size=(n, m)).astype(object)
 
     return matrix
 
+
 def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
-    # returns nxm matrix with random locations of empty space (0), roads (-1) and buildings (-2)
+    """
+    Builds a random map of the given dimensions, with roads and buildings generated based on the given rates.
+    Roads will only ever be horizonal or vertical, and span the full length/width of the map.
+    Buildings will never be adjacent to a road (simulates sidewalks).
+
+    n = width of matrix to generate
+    m = height of matrix to generate
+    road_perc = percentage of rows and columns to turn into roads 
+                (default 20%, meaning 1 in 5 rows and columns will be roads)
+    buildings_perc = percentage of valid empty spaces (once roads are generated) that should be buildings
+                (default 90%, meaning 1 in 10 remaining empty spaces will be buildings)
+
+    returns nxm matrix with empty space (0), roads (-1), and buildings (-2)
+    """
     
     # start by generating matrix of all 0s
     matrix = np.full((n,m),0,dtype=object)
@@ -59,13 +78,18 @@ def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
 
     return matrix
 
-def building_generation_1(n, m, matrix, invalid_rows, invalid_cols, buildings_perc):
-    # n, m = dimensions of matrix
-    # matrix = map with existing roads but no buildings
-    # invalid_rows, invalid_cols: lists of row and column indices that are invalid bc roads
-    
-    # adds buildings to given matrix in random spots not containing roads 
 
+def building_generation_1(n, m, matrix, invalid_rows, invalid_cols, buildings_perc):
+    """
+    Randomly generates buildings (represented by -2) onto a given map
+    
+    n = width of matrix
+    m = height of matrix
+    matrix = int np matrix with -1s representing roads and 0s representing empty spaces. no buildings yet
+    invalid_rows, invalid_cols: lists of row and column indices that are invalid bc roads
+    buildings_perc = percentage of valid empty spaces that should be buildings
+    """
+    
     valid_rows = [i for i in range(n) if i not in invalid_rows]
     valid_cols = [i for i in range(m) if i not in invalid_cols]
     valid_coords = []
@@ -79,9 +103,15 @@ def building_generation_1(n, m, matrix, invalid_rows, invalid_cols, buildings_pe
         matrix[coords[0]][coords[1]] = -2
         valid_coords.remove(coords)
 
+
 def get_empty_locations_from_map(map):
-    # map = matrix of empty space (0), roads (-1) and buildings (-2)
-    # returns list of possible coordinates for cans in [i,j] form
+    """
+    Returns list of coordinates signifying the empty locations from the given map.
+    
+    map = np matrix of empty space (0), roads (-1) and buildings (-2)
+    
+    returns list of possible coordinates for cans in [i,j] form
+    """
 
     permissable_locs = []
     for i in range(len(map)):
@@ -91,16 +121,23 @@ def get_empty_locations_from_map(map):
     
     return permissable_locs
 
+
 def save_map_to_npy(map,fname="map.npy",location="."):
+    """Saves a map to an npy file for reloading later"""
     np.save(location+"/"+fname, map)
 
+
 def save_map_to_csv(map,fname="map.npy",location="."):
+    """Saves a map to a csv file for reloading later"""
     np.savetxt(location+"/"+fname, map, delimiter=",", fmt="%d")
 
+
 def load_map_from_npy(fname="map.npy",location="."):
+    """Returns np matrix extracted from npy file"""
     matrix = np.load(location+"/"+fname, allow_pickle=True)
     return matrix
 
 def load_map_from_csv(fname="map.csv",location="."):
+    """Returns np matrix extracted from csv file"""
     matrix = np.loadtxt(location+"/"+fname, delimiter=",", dtype=int)
     return matrix.astype(object)
