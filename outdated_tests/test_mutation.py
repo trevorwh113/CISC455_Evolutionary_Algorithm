@@ -1,5 +1,7 @@
 """
 Unit test coverage for mutation operators
+OLD: This test suite is outdated. The structure of the mutation code has been updated 
+significantly and the test suite was not kept up to date. Do not run.
 """
 
 import pytest

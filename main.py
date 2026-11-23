@@ -175,8 +175,8 @@ def main():
     # ---------------------------------------------------------------
     ideal_steps_from_trashcan = 4       # All spots should be within this many steps from a trashcan (4 because 3 is ideal)
     nonePenalty = 10                    # Penalty each tile that cannot reach a trashcan (should be high deal with courtyards)
-    canOverPenalty = 20                 # Penalty each unecessary trashcans
-    overStepPenalty = 5                 # Penalty for each tile further than ideal_steps_from_trashcan to a trashcan
+    canOverPenalty = 50                 # Penalty each unecessary trashcans
+    overStepPenalty = 10                # Penalty for each tile further than ideal_steps_from_trashcan to a trashcan
 
     # ---------------------------------------------------------------
     # Algorithm
