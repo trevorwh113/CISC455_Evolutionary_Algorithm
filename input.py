@@ -4,23 +4,24 @@ import random
 import numpy as np
 
 
-def generate_map_simple(n, m):
+def generate_map_simple(n):
     """
-    Builds a random map of the given dimensions, with equal probability for generation of roads, 
+    Builds a random n x n map of the given dimensions, with equal probability for generation of roads, 
     buildings and empty space.
 
     returns nxm matrix with random locations of empty space (0), roads (-1), and buildings (-2)
     """
 
+    m = n
     rng = np.random.default_rng()
     matrix = rng.integers(low=-2, high=1, size=(n, m)).astype(object)
 
     return matrix
 
 
-def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
+def generate_map(n, road_perc=0.2, buildings_perc=0.9):
     """
-    Builds a random map of the given dimensions, with roads and buildings generated based on the given rates.
+    Builds a random n x n map of the given dimensions, with roads and buildings generated based on the given rates.
     Roads will only ever be horizonal or vertical, and span the full length/width of the map.
     Buildings will never be adjacent to a road (simulates sidewalks).
 
@@ -33,8 +34,9 @@ def generate_map(n, m, road_perc=0.2, buildings_perc=0.9):
 
     returns nxm matrix with empty space (0), roads (-1), and buildings (-2)
     """
-    
+
     # start by generating matrix of all 0s
+    m = n
     matrix = np.full((n,m),0,dtype=object)
 
     # have some number of roads? generate horizontal then vertical 
