@@ -171,9 +171,9 @@ def fitness(individual, input, maxStep,nonePenalty = 5, canOverPenalty = 5, over
     Compute fitness of an individual for the trash can alocation problem. 
     
     Parameters:
-       individual (list of coordinates): Where the trash can are.
-       input (2D list): map of all of the roads and buildings
-
+        individual (list of coordinates): Where the trash can are.
+        input (2D list): map of all of the roads and buildings
+        maxStep (int): maximum permissible number of steps each tile should be from a trash can
     Returns:
         score ():The score of an individual. Lower score is better.
     """
@@ -201,16 +201,40 @@ def fitness(individual, input, maxStep,nonePenalty = 5, canOverPenalty = 5, over
         # bigger than maxstep
         elif (elem > maxStep):
             score = score + map[elem]*elem*overStepPenalty
-        
-    # 1 trash can can easily cover a 7x7 space so a 49 area (if we want 3 steps between cans)
-    trashCanCap = calculate_can_cap(input, maxStep)
 
-    #  minimization: penalty for each trash can (how much relative to distance penalty?)
-    score = score + (len(individual)-trashCanCap)*canOverPenalty
+    # additional penalties for too many trash cans
+    score = score + total_can_over_penalty(individual, input, maxStep, canOverPenalty)
 
     return score
 
 def calculate_can_cap(input, maxStep):
+    """
+    Calculates the theoretical minimum required trash cans for good coverage
+    under perfect conditions (no walls or roads).
+
+    Parameters:
+        input (2D list): map of all of the roads and buildings
+        maxStep (int): maximum permissible number of steps each tile should be from a trash can
+    Returns:
+        int, the theoretical minimum number of trash cans needed to satisfy maxStep
+    """
+    # 1 trash can can cover a 7x7 space so a 49 area (if we want 3 steps between cans)
     trashCanCap = math.ceil(input.shape[0]*input.shape[1]/(maxStep*2+1)**2)
     return trashCanCap
 
+def total_can_over_penalty(individual, input, maxStep, canOverPenalty):
+    """
+    Returns the cumulative value of the penalties for all cans over
+    the theoretical minimum required for good coverage.
+
+    Parameters:
+        individual (list of coordinates): Where the trash can are.
+        input (2D list): map of all of the roads and buildings
+        maxStep (int): maximum permissible number of steps each tile should be from a trash can
+        canOverPenalty (int): the penalty to add for each unecessary trash can
+    Return:
+        int, the total penalty for extra trashcans in the given individual
+    """
+    trashCanCap = calculate_can_cap(input, maxStep)
+    #  minimization: penalty for each trash can (how much relative to distance penalty?)
+    return (len(individual)-trashCanCap)*canOverPenalty

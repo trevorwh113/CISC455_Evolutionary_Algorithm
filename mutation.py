@@ -1,282 +1,378 @@
 """
-Implementation of mutation operators
+Implementation of mutation operators and selectors
 """
 import random
-import math
+from enum import Enum
 
-# -----------------------------------------------------
-# Mutation Selection Operators
-# -----------------------------------------------------
-def random_mutate(individual, board, max_trashcans):
-    """
-    Performs one type of mutation on the individual at random
-    from the following operators: add, remove, modify.
-    """
-    operator = random.randint(0,2)
-    if operator == 0:
-        add_trashcan(individual, board, max_trashcans)
-    elif operator == 1:
-        remove_trashcan(individual)
-    else:
-        modify_one_trashcan(individual, board)
-        # modify_all_trashcans(individual, board)
-        # self_adaptive_modify_one_trashcan(individual, board, sigmas, learning_rate, bound)
-        # self_adaptive_modify_all_trashcans(individual, board, sigmas, learning_rate, bound)
+class MutationStrategy():
+    """ A class to simplify selecting a mutation strategy """
 
-def informed_mutate(individual, board, max_trashcans, fitness, fitness_threshold, size_thresholds):
-    """
-    Selects an appropriate mutation strategy based on tuned parameters using
-    a heuristic. If the individual's fitness is high and it is small, meaning
-    its size is under the lower size_threshold, it is too short and performs
-    an add mutation. Likewise, if fitness is high and it is large, meaning
-    longer than the upper size_threshold, it is too long so it performs remove.
-    Always performs a modify mutation to explore locally.
+    class Strategy(Enum):
+        """ Enum designating the chosen mutation selection strategy """
+        NONE = 0
+        RANDOM = 1
+        PROBABILISTIC = 2
+        INFORMED = 3
+        SELF_ADAPTIVE = 4
 
-    A high fitness is one above the given fitness_threshold. The size_thresholds 
-    should be a pair of percentages of the max size. For example. [0.2, 0.8] means 
-    an individual is short if has 20% of the max_trashcans allowed, and too long 
-    if it has 80% of the max_trashcans allowed.
-    """
-    num_trashcans = len(individual)
+    def __init__(self):
+        """ 
+        Initializes paramters to default values. 
+        Specific 'set' functions must be called before mutate().
+        """
+        # Board and initialization attributes
+        self.board = None
+        self.dimensions = None
+        self.strategy = self.Strategy.NONE
 
-    # Do a random mutation to explore within and sometimes outside the thresholds
-    random_mutate(individual, board, max_trashcans)
+        # Common default attributes
+        self.sigma = [1,1]
+        self.all = False
 
-    # If fitness poor and it is short, have a higher chance to add trashcans
-    if fitness > fitness_threshold and num_trashcans <= size_thresholds[0] * max_trashcans:
-        add_trashcan(individual, board, max_trashcans)
+        # Probabilisitc mutation attributes
+        self.probabilities = [0.33, 0.33, 0.33]
 
-    # If fitness poor and it is long, have a higher chance to add trashcans
-    elif fitness > fitness_threshold and num_trashcans >= size_thresholds[1] * max_trashcans:
-        remove_trashcan(individual)
+        # Informed mutation attributes
+        self.bounds = [0,0.3]
+
+        # Self-adaptive mutation attributes
+        self.probability_sigma = 1
+
+    def setBoardState(self, board):
+        """ Saves informations about the input map 'board' """
+        self.board = board
+        self.dimensions = get_board_dimensions(board)
+
+    def setStandardDeviation(self, sigma):
+        """ Sets the 'sigma' of shape [x,y] for creep modify mutation """
+        self.sigma = sigma
+
+    def setModifyAll(self, all):
+        """ Sets whether modify mutations change one or all trashcans """
+        self.all = all
+
+    def getStrategy(self):
+        """ Returns the set mutation strategy """
+        return self.strategy
+
+    def printStrategy(self):
+        """ Prints the mutations strategy parameters """
+        print("Strategy:", self.strategy)
+        print("Sigma:", self.sigma)
+        print("Mutate All:", self.all)
+        print("PM - Probabilities:", self.probabilities)
+        print("IM - Bounds:", self.bounds)
+        print("LM - Sigma:", self.probability_sigma)
+
+    def initLearnedProbabilities(mu):
+        """
+        Returns a 2D list with a list of mutation probabilities for each 
+        individual. Each inner list has structure: [p_add, p_remove, p_modify].
+        Used for self-adaptive mutations. Every probability defaults to 33%.
+
+        Parameters: 
+            mu: size of the population
+        Returns:
+            list of lists representing mutation probabilities [[0.33, 0.33, 0.33], ...]
+        """
+        learned_probabilities = []
+        for i in range(mu):
+            learned_probabilities.append([0.33, 0.33, 0.33])
+        return learned_probabilities
+
+    def mutate(self, individual, fitness=1, penalty=0, learned_probabilities=[]):
+        """ 
+        Mutates the given individual in place using the set mutation selection
+        strategy. A strategy must be set first with one of the setter methods.
+
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+            fitness: integer, fitness of the individual, for informed mutation
+            penalty: integer, canOverMax penalty for the individual, for informed mutation
+            learned_probabilities: 2D list, learned mutation probabilities for self-adaptation
+        """
+        if self.strategy == self.Strategy.RANDOM:
+            self.__random_mutate(individual)
+        
+        elif self.strategy == self.Strategy.PROBABILISTIC:
+            self.__probabilistic_mutate(individual)
+        
+        elif self.strategy == self.Strategy.INFORMED:
+            self.__informed_mutate(individual, fitness, penalty)
+        
+        elif self.strategy == self.Strategy.SELF_ADAPTIVE:
+            self.__probabilistic_mutate(individual, learned_probabilities)
+
+        else:
+            print("No mutation strategy set!")
+
+    def setRandomMutation(self):
+        """ Selects the random mutation strategy """
+        self.strategy = self.Strategy.RANDOM
+
+    def setProbabilisiticMutation(self, probabilities):
+        """ 
+        Selects the probabilisitic mutation strategy with the given probabilities,
+        which must each be 0 <= i <= 1.
+        
+        Parameters:
+            probabilities: list, universal mutation probabilities [p_add, p_remove, p_modify] 
+        """
+        self.strategy = self.Strategy.PROBABILISTIC
+        self.probabilities = probabilities
+
+    def setInformedMutation(self, bounds):
+        """
+        Selects the informed mutation strategy using canOverMax proportions.
+        Lower and upper bounds i given must be 0 <= i <= 1.
+        
+        Parameters:
+            bounds: list, target bounds for canOverMax penalty [lower, upper]
+        """
+        self.strategy = self.Strategy.INFORMED
+        self.bounds = bounds
+
+    def setLearningMutation(self, probability_sigma):
+        """
+        Selects the self-adaptive mutation, with the given 
+        standard deviation for learning mutation probabilities.
+
+        Parameters:
+            probability_sigma: real, standard deviation
+        """
+        self.strategy = self.Strategy.SELF_ADAPTIVE
+        self.probability_sigma = probability_sigma
+
+    # -----------------------------------------------------
+    # Mutation Selection Operators
+    # -----------------------------------------------------
+    def __random_mutate(self, individual):
+        """
+        Performs one type of mutation on the individual at random
+        from the following operators: add, remove, modify.
+
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+        """
+        operator = random.randint(0,2)
+
+        if operator == 0:
+            self.__add_trashcan(individual)
+
+        elif operator == 1:
+            self.__remove_trashcan(individual)
+
+        else:
+            self.__modify_trashcan(individual)
+
+    def __probabilistic_mutate(self, individual, learned_probabilities=[]):
+        """
+        Performs each type of mutation with the set probability rate from the 
+        following operators: add, remove, modify. For probabilistic mutation, 
+        uses the globally set probabilities. For self-adaptive mutation, uses 
+        and mutates in place the given learned_probabilities.
+
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+            learned_probabilities: list of mutation probabilities learned for the individual [p_add, p_remove, p_modify]
+        """
+        add, remove, modify = random.random(), random.random(), random.random()
+
+        actual_probabilities = self.probabilities
+
+        # If using self-adaptive, mutate and use the leared probabilities
+        if self.strategy == self.Strategy.SELF_ADAPTIVE:
+            self.__mutate_probabilities(learned_probabilities, self.probability_sigma)
+            actual_probabilities = learned_probabilities
+
+        if add < actual_probabilities[0]:
+            self.__add_trashcan(individual)
+        
+        if remove < actual_probabilities[1]:
+            self.__remove_trashcan(individual)
+
+        if modify < actual_probabilities[2]:
+            self.__modify_trashcan(individual)
+
+    def __informed_mutate(self, individual, fitness, penalty):
+        """
+        Performs a mutation strategy based on the ratio of extra can penalty 
+        ('penalty') to total fitness ('fitness'). If it is on the high end of the
+        desired proportional range, removes trashcans to reduce the penalty. If it 
+        is on the low end, adds trashcans to try to reduce other penalties. If it 
+        falls within the range, pick a random mutation.
+
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+            fitness: integer, fitness of the individual
+            penalty: integer, total canOver penalty part of the fitness
+        """    
+        ratio = penalty / fitness
+        if ratio < self.bounds[0]:
+            self.__add_trashcan(individual)
+        elif ratio > self.bounds[1]:
+            self.__remove_trashcan(individual)
+        else:
+            self.__random_mutate(individual)
+
+    # -----------------------------------------------------
+    # Basic Mutation Operators
+    # -----------------------------------------------------
+    def __add_trashcan(self, individual):
+        """
+        Adds a new random pair of coordinates at a random position in the 
+        candidate solution, in place. 
+        
+        Leaves the individual unchanged if the new trashcan is a duplicate, 
+        or the new trashcan is on a road or wall.
+
+        - Global exploitation (keep good trashcans, but need another) 
+        - Allows solutions to grow
+        - Preserves candidate validity
+
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+        Throws:
+            IllegalBoard: if the problem board has no rows or columns
+        """
+        rows, cols = self.dimensions
+        pos = random.randint(0,len(individual))
+        new_trashcan = [random.randint(0,rows-1), random.randint(0,cols-1)]
+
+        # Do not add if it is a duplicate or on a road or wall
+        if new_trashcan not in individual and is_free_space(new_trashcan, self.board):
+            individual.insert(pos, new_trashcan)
+
+    def __remove_trashcan(self, individual):
+        """ 
+        Removes a random pair of coordinates from the candidate, in place.
+        
+        Leaves the individual unchanged if it has just one trashcan, to 
+        ensure no empty individuals are created.
+
+        - Allows solutions to shrink
+        - Preserves candidate validity
+
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+        Throws:
+            IllegalSolution: if the input genome is empty
+        """
+        if (len(individual) == 0):
+            raise IllegalSolution("remove_trashcan: individual to mutate is empty!")
+        
+        # Only remove if there are 2+ tashcans; do not create an empty individual
+        if (len(individual) > 1):
+            pos = random.randint(0,len(individual)-1)
+            individual.pop(pos)
+
+    def __modify_trashcan(self, individual):
+        """ 
+        Modifies both coordinates in trashcans in the candidate solution using 
+        arithmetic creep, in place. If 'all' is set, creeps every allele. Otherwise, 
+        chooses a random trashcan to creep. 
+        
+        Limits perturbations to the board size. Creep step sizes are uniform for all 
+        coordinates in each direction. Leaves the individual unchanged if one of the 
+        following is true: all perturbations are 0, the new trashcan is a duplicate, 
+        or the new trashcan is on a road or wall.
     
-    else:
-        modify_one_trashcan(individual, board)
+        - Local exploitation (try to improve 'ok' trashcans)
+        - Preserves candidate validity
+        - Smaller change (up to one trashcan)
 
-def learning_mutate(individual, board, max_trashcans, ideal_size, size_sigma, size_learning_rate, size_sigma_bound):
-    """
-    Selects an appropriate mutation strategy based on the learned ideal_size 
-    associated with the individual. Mutates the size_sigma, ensuring it is 
-    always above the size_sigma_bound, then uses it to update the potential 
-    ideal_size. If the current size is less than the ideal_size, favours add 
-    mutations; if it exceeds it, favours remove mutations. Always performs a 
-    modify mutation to explore locally.
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+            board: input map state as an n x n numpy array
+            sigma: the step sizes to creep in each direction (default: [1,1])
+        Throws:
+            IllegalSolution: if the input genome is empty
+            IllegalBoard: if the problem board has no rows or columns
+        """
+        if (len(individual) == 0):
+            raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
 
-    Returns the adjusted ideal_size, size_sigma
-    """
-    # Update the ideal size mutation step size (size_sigma)
-    new_size_sigma = size_sigma * math.exp(size_learning_rate * random.gauss(0,1))
-    new_size_sigma = size_sigma_bound if new_size_sigma < size_sigma_bound else new_size_sigma
+        num_traschans = len(individual)
+        sigmas = [self.sigma] * num_traschans
 
-    # Update the appropriate learned size; must remain between 0 and max
-    new_ideal_size = ideal_size + (int) (new_size_sigma * random.gauss(0,1))
-    new_ideal_size = 1 if new_ideal_size < 1 else new_ideal_size
-    new_ideal_size = max_trashcans if new_ideal_size > max_trashcans else new_ideal_size
-
-    # Always try moving a trashcan in case they are close but misplaced
-    modify_one_trashcan(individual, board)
-
-    # Add or remove a trashcan depending if it shorter or larger than learned size
-    num_trashcans = len(individual)
-    if num_trashcans < new_ideal_size:
-        add_trashcan(individual, board, max_trashcans)
-    elif num_trashcans > new_ideal_size:
-        remove_trashcan(individual)
-
-    return new_ideal_size, new_size_sigma
-
-# -----------------------------------------------------
-# Basic Mutation Operators
-# -----------------------------------------------------
-def add_trashcan(individual, board, max_trashcans):
-    """
-    Adds a new random pair of coordinates at a random position in the 
-    candidate solution, in place. 
+        # Mutates every trashcan in the candidate
+        if all:
+            for pos in range(num_traschans):
+                self.__modify_trashcan_at_pos(individual, sigmas, pos)
     
-    Leaves the individual unchanged if one of the following is true: 
-    it already has the max number of trashcans, the new trashcan is a 
-    duplicate, or the new trashcan is on a road or wall.
+        # Pick a random trashcan to mutate
+        else:
+            pos = random.randint(0,len(individual)-1)
+            self.__modify_trashcan_at_pos(individual, sigmas, pos)
 
-    Throws an IllegalBoard exception if the problem board has no rows
-    or no columns.
+    # -----------------------------------------------------
+    # Mutation Helpers
+    # -----------------------------------------------------
+    def __creep_trashcan(self, trashcan, sigma):
+        """
+        Given a trashcan, returns both coordinates after applying an integer creep 
+        mutation with the the given step size sigma. Keeps x and y within bounds.
 
-    Properties:
-    - Global exploitation (keep good trashcans, but need another) 
-    - Allows solutions to grow
-    - Preserves candidate validity
-    """
-    # Do not add anything if the candidate is already the max size
-    if (len(individual) >= max_trashcans):
-        return
+        Parameters:
+            trashcan: list, coordinates [row,col]
+            sigma: list, standard deviations in each direction [s_row, s_col]
+        Returns:
+            tuple representing the modified coordinates (row', col')
+        """
+        new_x = trashcan[0] + (int) (sigma[0] * random.gauss(0,1))
+        new_x = 0 if new_x < 0 else new_x
+        new_x = self.dimensions[0]-1 if new_x >= self.dimensions[0] else new_x
 
-    rows, cols = get_board_dimensions(board)
-    pos = random.randint(0,len(individual))
-    new_trashcan = [random.randint(0,rows-1), random.randint(0,cols-1)]
+        new_y = trashcan[1] + (int) (sigma[1] * random.gauss(0,1))
+        new_y = 0 if new_y < 0 else new_y
+        new_y = self.dimensions[1]-1 if new_y >= self.dimensions[1] else new_y
 
-    # Do not add if it is a duplicate or on a road or wall
-    if new_trashcan not in individual and is_free_space(new_trashcan, board):
-        individual.insert(pos, new_trashcan)
+        return new_x, new_y
 
-def remove_trashcan(individual):
-    """ 
-    Removes a random pair of coordinates from the candidate, in place.
+    def __mutate_probabilities(self, probabilities, sigma):
+        """
+        Given mutation probabiltiies, mutates each in place using real-number 
+        arithemtic creep. Each value remains a valid probability between 0 and 1.
 
-    Leaves the individual unchanged if it has just one trashcan, to 
-    ensure no empty individuals are created.
+        Parameters:
+            probabilities: list, mutation probabilites [p_add, p_remove, p_modify]
+            sigma: int, standard deviation for probabilities
+        """
+        # Mutate the given probabilities
+        for i in range(len(probabilities)):
+            new_prob = probabilities[i] + sigma * random.gauss(0,1)
+            probabilities[i] = max(0, min(1, new_prob))
 
-    Throws an IllegalSolution exception if the input genome is empty.
+    def __modify_trashcan_at_pos(self, individual, sigmas, pos):
+        """
+        Performs integer creep mutation in place on the traschan at position 'pos'
+        in 'individual' using its corresponding standard deviations in 'sigma'.
 
-    Properties:
-    - Allows solutions to shrink
-    - Preserves candidate validity
-    """
-    if (len(individual) == 0):
-        raise IllegalSolution("remove_trashcan: individual to mutate is empty!")
-    
-    # Only remove if there are 2+ tashcans; do not create an empty individual
-    if (len(individual) > 1):
-        pos = random.randint(0,len(individual)-1)
-        individual.pop(pos)
+        Parameters:
+            individual: list of coordinates [row,col] (ex: [[0,0],[0,1]])
+            sigmas: list, standard deviations for each trashcan [[s_row1, s_col1], [s_row2, s_col2]...]
+        """
+        # Creep both directions by a small integer, stopping at bounds
+        new_x, new_y = self.__creep_trashcan(individual[pos], sigmas[pos])
 
-def modify_one_trashcan(individual, board, sigma=[1,1]):
-    """ 
-    Modifies the coordinates for a single random trashcan in the 
-    candidate solution using arithmetic creep, in place. Limits 
-    perturbations to the board size. Creep step sizes is uniform 
-    for x and y dimensions for all coordinates. It can be set via 
-    'sigma' and defaults to [1,1].
-
-    Leaves the individual unchanged if one of the following is true: 
-    all perturbations are 0, the new trashcan is a duplicate, or the 
-    new trashcan is on a road or wall.
-
-    Throws an IllegalSolution exception if the input genome is empty.
-    Throws an IllegalBoard exception if the problem board has no rows 
-    or no columns.
-
-    Properties:
-    - Local exploitation (try to improve 'ok' trashcans)
-    - Preserves candidate validity
-    - Allows one trashcan to be changed
-    """
-    if (len(individual) == 0):
-        raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
-
-    dimensions = get_board_dimensions(board)
-    num_traschans = len(individual)
-    sigmas = [sigma] * num_traschans
-
-    # Pick a random trashcan to mutate
-    pos = random.randint(0,len(individual)-1)
-    modify_trashcan(individual, sigmas, board, pos, dimensions)
-
-def modify_all_trashcans(individual, board, sigma=[1,1]):
-    """ 
-    Modifies the coordinates for all trashcans in the candidate 
-    solution using arithmetic creep, in place. Limits perturbations 
-    to the board size. Creep step sizes is uniform for x and y 
-    dimensions for all coordinates. It can be set via 'sigma' and 
-    defaults to [1,1].
-
-    Leaves the individual unchanged if one of the following is true: 
-    all perturbations are 0, all new trashcans are duplicates or on 
-    a road or wall.
-
-    Throws an IllegalSolution exception if the input genome is empty.
-    Throws an IllegalBoard exception if the problem board has no rows 
-    or no columns.
-
-    Properties:
-    - Local exploitation (try to improve 'ok' trashcans)
-    - Preserves candidate validity
-    - Allows all trashcans to be changed
-    """
-    if (len(individual) == 0):
-        raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
-
-    dimensions = get_board_dimensions(board)
-    num_traschans = len(individual)
-    sigmas = [sigma] * num_traschans
-
-    # Mutates every trashcan in the candidate
-    for pos in range(num_traschans):
-        modify_trashcan(individual, sigmas, board, pos, dimensions)
-    
-# -----------------------------------------------------
-# Self-Adaptive Mutation Operators
-# -----------------------------------------------------
-def self_adaptive_modify_one_trashcan(individual, board, sigmas, learning_rate, bound):
-    """ 
-    Modifies the coordinates for a single random trashcan in the 
-    candidate solution using arithmetic creep, in place. Limits 
-    perturbations to the board size. Creep step uses standard 
-    deviations specified in 'sigmas', containing a pair of x and y 
-    step sizes for each chromosome (trashcan). Step sizes adapt based 
-    on the global 'learning_rate', and cannot drop below 'bound'.
-
-    Leaves the individual unchanged if one of the following is true: 
-    all perturbations are 0, the new trashcan is a duplicate, or the 
-    new trashcan is on a road or wall.
-
-    Throws an IllegalSolution exception if the input genome is empty.
-    Throws an IllegalBoard exception if the problem board has no rows 
-    or no columns.
-
-    Properties:
-    - Local exploitation (try to improve 'ok' trashcans)
-    - Preserves candidate validity
-    - Allows one trashcan to be changed
-    - Allows its step size to be changed, whether the trashcan was changed or not
-    """
-    if (len(individual) == 0):
-        raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
-
-    dimensions = get_board_dimensions(board)
-
-    # Pick a random trashcan to mutate
-    pos = random.randint(0,len(individual)-1)
-    self_adaptive_modify_trashcan(individual, sigmas, board, pos, dimensions, learning_rate, bound)
-
-def self_adaptive_modify_all_trashcans(individual, board, sigmas, learning_rate, bound):
-    """ 
-    Modifies the coordinates for all trashcans in the candidate 
-    solution using arithmetic creep, in place. Limits perturbations 
-    to the board size. Creep step uses standard deviations specified
-    in 'sigmas', containing a pair of x and y step sizes for each 
-    chromosome (trashcan). Step sizes adapt based on the global
-    'learning_rate', and cannot drop below 'bound'.
-
-    Leaves the individual unchanged if one of the following is true: 
-    all perturbations are 0, all new trashcans are duplicates or on 
-    a road or wall.
-
-    Throws an IllegalSolution exception if the input genome is empty.
-    Throws an IllegalBoard exception if the problem board has no rows 
-    or no columns.
-
-    Properties:
-    - Local exploitation (try to improve 'ok' trashcans)
-    - Preserves candidate validity
-    - Allows all trashcans to be changed
-    - Allows all step sizes to be changed, whether trashcans were changed or not
-    """
-    if (len(individual) == 0):
-        raise IllegalSolution("modify_trashcan: individual to mutate is empty!")
-
-    dimensions = get_board_dimensions(board)
-    num_traschans = len(individual)
-
-    # Mutates every trashcan in the candidate
-    for pos in range(num_traschans):
-        self_adaptive_modify_trashcan(individual, sigmas, board, pos, dimensions, learning_rate, bound)
+        # Do not modify if it is a duplicate or on a road or wall
+        new_trashcan = [new_x, new_y]
+        if new_trashcan not in individual and is_free_space(new_trashcan, self.board):
+            individual[pos] = new_trashcan
 
 # -----------------------------------------------------
-# Helper functions
+# Helper Functions
 # -----------------------------------------------------
 def is_free_space(position, board):
     """
     Returns true if it is not a road (-1) or wall (-2).
     Simply, if the board value is not negative.
+
+    Parameters:
+        position: list, coordinates in the board space [row, col]
+        board: the numpy array presenting the input map state
+    Returns:
+        true if the 'position' is not a road or a wall in 'board'
     """
     value = board[position[0]][position[1]]
     return value >= 0
@@ -285,6 +381,13 @@ def get_board_dimensions(board):
     """
     Returns the dimensions of the board as a tuple (rows, columns).
     Throws IllegalBoard exceptions if there are no rows or columns.
+
+    Parameters:
+        board: the numpy array presenting the input map state
+    Returns:
+        tuple with the board dimensions (num_rows, num_cols)
+    Throws:
+        IllegalBoard: if the board is not a non-empty 2D array
     """
     dimensions = board.shape
     if len(dimensions) != 2:
@@ -293,66 +396,13 @@ def get_board_dimensions(board):
         raise IllegalBoard("get_board_dimensions: rows or columns are empty!")
     return dimensions
 
-def update_sigma(sigma, learning_rate, bound):
-    """
-    Given a pair of step sizes (sigma), updates the sigma in both 
-    directions in place by sampling using the learning rate.
-    The sigma cannot drop below bound.
-    """
-    new_sigma_x = sigma[0] * math.exp(learning_rate * random.gauss(0,1))
-    new_sigma_x = bound if new_sigma_x < bound else new_sigma_x
-    sigma[0] = new_sigma_x
-
-    new_sigma_y = sigma[1] * math.exp(learning_rate * random.gauss(0,1))
-    new_sigma_y = bound if new_sigma_y < bound else new_sigma_y
-    sigma[1] = new_sigma_y
-
-def creep_trashcan(trashcan, dimensions, sigma):
-    """
-    Given a trashcan, returns the both coordinates after applying
-    an integer creep mutation with the the given step size sigma. 
-    Keeps x and y within bounds.
-    """
-    new_x = trashcan[0] + (int) (sigma[0] * random.gauss(0,1))
-    new_x = 0 if new_x < 0 else new_x
-    new_x = dimensions[0]-1 if new_x >= dimensions[0] else new_x
-
-    new_y = trashcan[1] + (int) (sigma[1] * random.gauss(0,1))
-    new_y = 0 if new_y < 0 else new_y
-    new_y = dimensions[1]-1 if new_y >= dimensions[1] else new_y
-
-    return new_x, new_y
-
-def modify_trashcan(individual, sigmas, board, pos, dimensions):
-    """ Performs simple creep mutation on a single position """
-    # Creep both directions by a small integer, stopping at bounds
-    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
-
-    # Do not modify if it is a duplicate or on a road or wall
-    new_trashcan = [new_x, new_y]
-    if new_trashcan not in individual and is_free_space(new_trashcan, board):
-        individual[pos] = new_trashcan
-
-def self_adaptive_modify_trashcan(individual, sigmas, board, pos, dimensions, learning_rate, bound):
-    """ Performs self-adaptive creep mutation on a single position """
-    # Update the creep step size first
-    update_sigma(sigmas[pos], learning_rate, bound)
-
-    # Creep both directions by a small integer, stopping at bounds
-    new_x, new_y = creep_trashcan(individual[pos], dimensions, sigmas[pos])
-
-    # Do not modify if it is a duplicate or on a road or wall
-    new_trashcan = [new_x, new_y]
-    if new_trashcan not in individual and is_free_space(new_trashcan, board):
-        individual[pos] = new_trashcan
-
 # -----------------------------------------------------
 # Exceptions
 # -----------------------------------------------------
 class IllegalSolution(Exception):
-    """ Indicates an illegal candidate solution. """
+    """ Thrown when operating on an illegal candidate solution. """
     pass
 
 class IllegalBoard(Exception):
-    """ Indicates an illegal input problem. """
+    """ Thrown when operating on an illegal input problem. """
     pass
